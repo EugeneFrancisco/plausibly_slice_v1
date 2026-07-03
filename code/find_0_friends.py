@@ -108,7 +108,11 @@ def safe_length_spectrum(manifold, max_len):
     return ans
 
 
-def find_common_zero_surgery_via_words(manifold, max_len=3.0, min_len=0.0):
+def find_common_zero_surgery_via_words(
+        manifold: str | snappy.Manifold,
+        max_len: float = 3.0,
+        min_len: float = 0.0
+    ) -> list[tuple[str, complex, float, str]] | None:
     """
     The main function we used to find 0-friends as described in
     Section 5 of the paper.  For a knot K, let Z_K be the 0-surgery.
