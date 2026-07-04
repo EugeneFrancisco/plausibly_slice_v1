@@ -1,0 +1,4 @@
+NOT SLICE   K13n866          s_{F_3}(K_B) = 2 != 0
+NOT SLICE   K11n34           s_{F_3}(K_B) = 2 != 0
+NOT SLICE   17nh_0001844     s_{F_2}(K_B) = -2 != 0
+NOT SLICE   K15n25044        s_{F_3}(K_G) = 2 != 0

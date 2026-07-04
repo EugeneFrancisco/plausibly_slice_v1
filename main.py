@@ -32,21 +32,47 @@ Usage:
 from __future__ import annotations
 
 import csv
+import os
 import sys
+from datetime import datetime
 
 import snappy
 
 from knot import Knot, DATA_CSV
 
+# Verdicts are appended here one knot at a time so progress survives a long
+# (or interrupted) run; see ``main``.
+RESULTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "table_10_results.txt")
+
 
 # The 25 base knots of Table 10, in the paper's order.
 TABLE_10 = [
-    "K11n34", "K13n866", "K15n25044", "16n180537", "16n74539",
-    "17nh_0001844", "17nh_0002715", "17nh_0212094", "17nh_0212095",
-    "18nh_00010270", "18nh_00166702", "18nh_00610378", "18nh_00610381",
-    "19nh_000002588", "19nh_000003154", "19nh_000003570", "19nh_000032808",
-    "19nh_000076489", "19nh_000018991", "19nh_000066839", "19nh_000066841",
-    "19nh_000177115", "19nh_000177116", "19nh_001336127", "19nh_002457201",
+    "K11n34",
+    "K13n866",
+    "K15n25044",
+    "16n180537",
+    "16n74539",
+    "17nh_0001844",
+    "17nh_0002715",
+    "17nh_0212094",
+    "17nh_0212095",
+    "18nh_00010270",
+    "18nh_00166702",
+    "18nh_00610378",
+    "18nh_00610381",
+    "19nh_000002588",
+    "19nh_000003154",
+    "19nh_000003570",
+    "19nh_000032808",
+    "19nh_000076489",
+    "19nh_000018991",
+    "19nh_000066839",
+    "19nh_000066841",
+    "19nh_000177115",
+    "19nh_000177116",
+    "19nh_001336127",
+    "19nh_002457201",
 ]
 
 # The lone r=0 case (Theorem 5.8): concluded via the Sq^1-refined s-invariant,
@@ -182,9 +208,29 @@ def test_one_knot(base_knot: str, *, live: bool, verbose: bool = True) -> dict:
     return result
 
 
+def nonzero_s(r: dict) -> str:
+    """The first nonzero s-invariant among K_B, K_G as e.g. 's_{F_3} = 2'."""
+    for s in (r["s_b"], r["s_g"]):
+        for p, v in s.items():
+            if v != 0:
+                field = "Q" if p == 0 else f"F_{p}"
+                return f"s_{{{field}}} = {v}"
+    return ""
+
+
+def result_line(r: dict) -> str:
+    """One-line verdict for a knot, used in both the file and the summary."""
+    if r["not_slice"]:
+        return f"{r['base_knot']:<16} not slice   {nonzero_s(r)}"
+    return f"{r['base_knot']:<16} --          {r['note']}"
+
+
 def main(argv: list[str]) -> None:
     """
     Run the pipeline over one or all Table 10 knots and print a summary.
+
+    Each knot's verdict is appended to ``RESULTS_FILE`` as soon as it is
+    computed, so partial progress is visible during a long run.
 
     Args:
         argv: Command-line arguments after the program name.  A ``--search``
@@ -194,32 +240,41 @@ def main(argv: list[str]) -> None:
     live = "--search" in argv
     args = [a for a in argv if a != "--search"]
     knots = [args[0]] if args else TABLE_10
+    mode = "live search" if live else "recorded links"
+
+    with open(RESULTS_FILE, "a") as f:
+        f.write(f"\n# Theorem 5.10 verdicts ({mode}), "
+                f"started {datetime.now():%Y-%m-%d %H:%M:%S}\n")
+        f.write(f"# {len(knots)} knot(s); each line is written as it finishes.\n")
 
     results = []
     for base_knot in knots:
         try:
-            results.append(test_one_knot(base_knot, live=live))
+            r = test_one_knot(base_knot, live=live)
         except Exception as e:
             print(f"\n[error] {base_knot}: {type(e).__name__}: {e}", flush=True)
-            results.append({"base_knot": base_knot, "not_slice": False,
-                            "s_b": {}, "s_g": {}, "witness": None,
-                            "note": f"{type(e).__name__}: {e}"})
+            r = {"base_knot": base_knot, "not_slice": False, "s_b": {},
+                 "s_g": {}, "witness": None, "note": f"{type(e).__name__}: {e}"}
+        results.append(r)
+        with open(RESULTS_FILE, "a") as f:
+            f.write(result_line(r) + "\n")
 
     # ---- summary ------------------------------------------------------
-    print("\n" + "=" * 70)
-    print(f"SUMMARY  ({'live search' if live else 'recorded links'})")
-    print("=" * 70)
-    shown = 0
-    for r in results:
-        if r["not_slice"]:
-            shown += 1
-            print(f"  NOT SLICE   {r['base_knot']:<16} {r['witness']}")
-        else:
-            print(f"  --          {r['base_knot']:<16} {r['note']}")
-    print("-" * 70)
-    print(f"  Shown not smoothly slice via Theorem 5.9: {shown}/{len(results)}")
-    if any(r['base_knot'] in NEEDS_SQ1 for r in results):
-        print(f"  (18nh_00010270 is the separate Theorem 5.8 / Sq^1 case.)")
+    shown = sum(r["not_slice"] for r in results)
+    summary = [
+        "=" * 70,
+        f"SUMMARY  ({mode})",
+        "=" * 70,
+        *(f"  {result_line(r)}" for r in results),
+        "-" * 70,
+        f"  Shown not smoothly slice via Theorem 5.9: {shown}/{len(results)}",
+    ]
+    if any(r["base_knot"] in NEEDS_SQ1 for r in results):
+        summary.append("  (18nh_00010270 is the separate Theorem 5.8 / Sq^1 case.)")
+    print("\n" + "\n".join(summary))
+    with open(RESULTS_FILE, "a") as f:
+        f.write("\n" + "\n".join(summary) + "\n")
+    print(f"\n(Verdicts written to {RESULTS_FILE})")
 
 
 if __name__ == "__main__":
