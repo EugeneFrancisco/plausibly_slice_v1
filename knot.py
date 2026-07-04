@@ -229,8 +229,8 @@ def _blue_green_exteriors_robust(
     green_long = green_exterior.homological_longitude()
     green_vol = green_exterior.volume()
     for d in blue_exterior.dual_curves(max_segments):
-        if verbose:
-            print(f"  {d}", flush=True)
+        # if verbose:
+        #     print(f"  {d}", flush=True)
         try:
             E = blue_exterior.drill(d)
             E1 = E.copy()

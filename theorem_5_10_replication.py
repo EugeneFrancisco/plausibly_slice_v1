@@ -109,7 +109,7 @@ def demonstrate_search(base_knot, partner):
     print(f"Live RBG pipeline for the 0-friend pair "
           f"({K.label}, {K_prime.label})")
     print("=" * 68)
-    return K.conclude_slice_status_via_rbg(K_prime)
+    return K.conclude_slice_status_via_rbg(K_prime, verbose=True)
 
 
 if __name__ == "__main__":
