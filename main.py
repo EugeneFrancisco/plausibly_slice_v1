@@ -6,26 +6,19 @@ K to a 0-friend K', recover the two simpler knots K_B, K_G the link encodes,
 compute their Rasmussen s-invariants, and apply Theorem 5.9 to conclude that
 K (and its 0-friend) are *not* smoothly slice.
 
-There are two ways to get the RBG link, controlled by ``--search``:
+Two ways to get the RBG link, controlled by ``--search``:
 
-  * recorded (default):  rebuild the link from the DT code recorded against
-    the base knot in ``data/unknown_with_0-friend_final.csv``.  Fast
-    (seconds/knot) and works for all 25 knots, including the ``*nh_*``
-    census knots whose names SnapPy cannot resolve on its own.
+  * recorded (default): rebuild it from the DT code in the CSV. Instead of searching for
+  RBG links, we just used the ones given to us in data/unknown_with_0-friend_final.csv
+  * live (``--search``): run the Section 5.11 search from the base knot's
+    exterior and its 0-friend's exterior (CSV ``tri`` isosig).  This will actually
+    search for the RBG links that can prove non-sliceness for the base knots. But it is
+    much slower.
 
-  * live (``--search``):  actually run the Section 5.11 search from the two
-    0-friend exteriors -- the base knot's exterior (from its name) and its
-    0-friend's exterior (from the ``tri`` isosig in the CSV).  This is the
-    faithful "search for the RBG link" path but is expensive (minutes to
-    hours per knot) and, without the PlausibleKnots census installed, only
-    works for base knots SnapPy can name (K11n34, K13n866, K15n25044,
-    16n180537, 16n74539).
+Regardless of how we find RBG linkes, we always (a) verify it is super-special (b) extract
+K_B, K_G (c) confirm 0-friends (d) get the s-invariants (e) hopefully invoke Theorem 5.9.
 
-Both paths then run the identical downstream pipeline (verify super-special
--> extract K_B, K_G -> confirm 0-friends -> s-invariants -> Theorem 5.9).
-
-Environment: the ``sage`` conda env (SnapPy + Sage); the s-invariant step
-shells out to KnotJob and needs Java >= 23 (auto-detected, see knot._find_java).
+Run in the ``sage`` conda env; the s-invariant step needs KnotJob + Java >= 23.
 
 Usage:
 
@@ -46,8 +39,7 @@ import snappy
 from knot import Knot, DATA_CSV
 
 
-# The 25 knots of Table 10, in the paper's order.  Each is a base knot
-# K in PS_19 for which a super-special RBG link to a 0-friend K' was found.
+# The 25 base knots of Table 10, in the paper's order.
 TABLE_10 = [
     "K11n34", "K13n866", "K15n25044", "16n180537", "16n74539",
     "17nh_0001844", "17nh_0002715", "17nh_0212094", "17nh_0212095",
@@ -57,11 +49,8 @@ TABLE_10 = [
     "19nh_000177115", "19nh_000177116", "19nh_001336127", "19nh_002457201",
 ]
 
-# The lone Theorem 5.8 (r=0 diffeo-trace) case.  Its RBG link has r=0, so K
-# and K' have diffeomorphic traces and the conclusion runs through the Sq^1
-# refinement s_{Sq^1_o(K)} != 0 rather than the plain s_2/s_3 that Theorem 5.9
-# and KnotJob's -s2/-s3 give us.  We flag it so a vanishing s_2/s_3 here is
-# reported as "expected, needs Sq^1" instead of a spurious failure.
+# The lone r=0 case (Theorem 5.8): concluded via the Sq^1-refined s-invariant,
+# not s_2/s_3, so we expect s_2/s_3 to vanish here.  See Table 10 / Thm 5.8.
 NEEDS_SQ1 = {"18nh_00010270"}
 
 
@@ -103,9 +92,8 @@ def get_rbg_link(base_knot: str, *, live: bool, verbose: bool = True):
     if not live:
         return Knot.recorded_rbg_link(base_knot)
 
-    # Live search: the two independent 0-friend exteriors.  E_K comes from
-    # the base knot's name (so *nh_* census knots need PlausibleKnots), and
-    # E_K' from the recorded 0-friend triangulation.
+    # Section 5.11 search from the two 0-friend exteriors: E_K from the base
+    # knot's name (*nh_* knots need PlausibleKnots), E_K' from the CSV isosig.
     try:
         E_K = snappy.Manifold(base_knot)
     except Exception as e:
@@ -149,7 +137,7 @@ def test_one_knot(base_knot: str, *, live: bool, verbose: bool = True) -> dict:
     say("=" * 70)
 
     # ---- Part 2: obtain and verify the super-special RBG link ----------
-    say("\n[Part 2] Obtaining the super-special RBG link...")
+    say("\n[Part 2] RBG link:")
     rbg = get_rbg_link(base_knot, live=live, verbose=verbose)
     if rbg is None:
         result["note"] = "no super-special RBG link found by the live search"
@@ -164,14 +152,13 @@ def test_one_knot(base_knot: str, *, live: bool, verbose: bool = True) -> dict:
         return result
 
     # ---- Part 1: the two encoded knots are 0-friends ------------------
-    say("\n[Part 1] Checking the blue/green fillings share a 0-surgery...")
     k_b, k_g = Knot.blue_green_knots(rbg)
     friends = k_b.is_zero_friend(k_g)
-    say(f"    K_B ({len(k_b.diagram().PD_code())} crossings) and "
-        f"K_G ({len(k_g.diagram().PD_code())} crossings) are 0-friends? {friends}")
+    say(f"\n[Part 1] K_B ({len(k_b.diagram().PD_code())} cr) and "
+        f"K_G ({len(k_g.diagram().PD_code())} cr) are 0-friends? {friends}")
 
     # ---- Part 3: s-invariants and Theorem 5.9 -------------------------
-    say("\n[Part 3] Computing Rasmussen s-invariants (KnotJob)...")
+    say("\n[Part 3] Rasmussen s-invariants (KnotJob):")
     result["s_b"] = k_b.rasmussen_s()
     result["s_g"] = k_g.rasmussen_s()
     say(f"    s(K_B) = {result['s_b']}")
@@ -187,13 +174,8 @@ def test_one_knot(base_knot: str, *, live: bool, verbose: bool = True) -> dict:
         say(f"    => by Theorem 5.9, K_B and K_G are NOT smoothly slice.")
         say(f"    => {base_knot} is not smoothly slice.  [Theorem 5.10]")
     elif base_knot in NEEDS_SQ1:
-        result["note"] = (
-            "expected: this is the r=0 diffeo-trace case (Theorem 5.8); "
-            "the conclusion needs the Sq^1-refined s-invariant, not s_2/s_3"
-        )
-        say(f"    s_2/s_3 vanish here as expected -- {base_knot} is the r=0")
-        say(f"    diffeo-trace knot, concluded via Theorem 5.8 and the Sq^1")
-        say(f"    refinement (outside the s_2/s_3 pipeline).")
+        result["note"] = "r=0 case: needs Sq^1-refined s (Thm 5.8), not s_2/s_3"
+        say(f"    s_2/s_3 vanish as expected ({result['note']}).")
     else:
         result["note"] = "all computed s-invariants vanish; try more primes"
         say(f"    {result['note']}")
