@@ -56,6 +56,10 @@ from snappy.exceptions import (                         # noqa: E402
     SnapPeaFatalError,
 )
 from find_0_friends import find_common_zero_surgery_via_words  # noqa: E402
+from find_n_friends import (                             # noqa: E402
+    find_common_n_surgery_via_words,
+    n_surgery_slope,
+)
 
 DATA_CSV = os.path.join(_HERE, "data", "unknown_with_0-friend_final.csv")
 KNOTJOB_JAR = os.path.join(_HERE, "tools", "knotjob", "KnotJob.jar")
@@ -321,6 +325,7 @@ class Knot:
         self.s_invariants: dict[int, int] = {}
         self.smoothly_slice: bool | None = None
         self.zero_friends: list[Knot] = []
+        self.n_friends: dict[int, list[Knot]] = {}
         self.rbg_link: RedBlueGreenLink | None = None
 
     # ---- construction helpers ----------------------------------------
@@ -467,6 +472,87 @@ class Knot:
             return
         if all(f.label != other.label for f in self.zero_friends):
             self.zero_friends.append(other)
+
+    # ---- Part 1 (generalized): n-friends -----------------------------
+
+    def n_surgery(self, n: int) -> snappy.Manifold:
+        """
+        The integer n-surgery of the knot as a closed Manifold.
+
+        Fills n*meridian + longitude (the homological longitude), so the
+        slope is correct for any peripheral framing; n = 0 is the 0-surgery.
+
+        Args:
+            n: The (non-negative) integer surgery coefficient.
+
+        Returns:
+            The n-surgery as a closed SnapPy Manifold.
+        """
+        M = self.exterior().copy()
+        M.dehn_fill(n_surgery_slope(M, n))
+        return M
+
+    def is_n_friend(self, other, n: int, tries: int = 5) -> bool:
+        """
+        Certify whether ``self`` and ``other`` are n-friends.
+
+        Two knots are n-friends when their n-surgeries are the same closed
+        manifold.  On success both knots record each other in their
+        ``n_friends[n]`` list.  (n = 0 matches ``is_zero_friend``.)
+
+        Args:
+            other: Another Knot (or anything Knot.coerce accepts).
+            n: The integer surgery coefficient.
+            tries: Number of randomized retries for the isometry check.
+
+        Returns:
+            True iff the two n-surgeries are certified isometric.
+        """
+        other = Knot.coerce(other)
+        A, B = self.n_surgery(n), other.n_surgery(n)
+        friends = False
+        for _ in range(tries):
+            try:
+                friends = bool(A.is_isometric_to(B))
+                break
+            except RuntimeError:
+                A.randomize(); B.randomize()
+        if friends:
+            self._add_n_friend(n, other)
+            other._add_n_friend(n, self)
+        return friends
+
+    def find_n_friends(
+        self, n: int, max_len: float = 3.0
+    ) -> list[tuple[str, complex, float, str]] | None:
+        """
+        Search for n-friends via short closed geodesics.
+
+        The n-surgery generalization of ``find_zero_friends``: it drills the
+        short geodesics of the hyperbolic n-surgery and keeps those whose
+        exterior is again a knot exterior with the same n-surgery.  Each hit
+        is recorded as a Knot in ``self.n_friends[n]``.
+
+        Args:
+            n: The integer surgery coefficient (n = 0 gives 0-friends).
+            max_len: Maximum geodesic length to search; larger is slower.
+
+        Returns:
+            A list of 4-tuples (word, complex_length, volume, isosig), or
+            None.
+        """
+        hits = find_common_n_surgery_via_words(self.exterior(), n, max_len)
+        for hit in hits or []:
+            self._add_n_friend(n, Knot(hit[-1]))
+        return hits
+
+    def _add_n_friend(self, n: int, other: "Knot") -> None:
+        """Record ``other`` as an n-friend of this knot (dedup by label)."""
+        if other is self:
+            return
+        friends = self.n_friends.setdefault(n, [])
+        if all(f.label != other.label for f in friends):
+            friends.append(other)
 
     # ---- Part 2: RBG links -------------------------------------------
 
