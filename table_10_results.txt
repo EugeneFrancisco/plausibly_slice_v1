@@ -24,3 +24,36 @@ SUMMARY  (live search)
   K11n34           not slice   s_{F_3} = 2
 ----------------------------------------------------------------------
   Shown not smoothly slice via Theorem 5.9: 1/1
+
+# Theorem 5.10 verdicts (live search), started 2026-07-07 14:08:07
+# 1 knot(s); each line is written as it finishes.
+K11n34           not slice   s_{F_3} = 2
+
+======================================================================
+SUMMARY  (live search)
+======================================================================
+  K11n34           not slice   s_{F_3} = 2
+----------------------------------------------------------------------
+  Shown not smoothly slice via Theorem 5.9: 1/1
+
+# Theorem 5.10 verdicts (live search), started 2026-07-07 14:09:00
+# 1 knot(s); each line is written as it finishes.
+K13n866          not slice   s_{F_3} = 2
+
+======================================================================
+SUMMARY  (live search)
+======================================================================
+  K13n866          not slice   s_{F_3} = 2
+----------------------------------------------------------------------
+  Shown not smoothly slice via Theorem 5.9: 1/1
+
+# Theorem 5.10 verdicts (live search), started 2026-07-07 14:21:05
+# 1 knot(s); each line is written as it finishes.
+K15n25044        --          RuntimeError: SnapPy cannot resolve base knot 'K15n25044' by name (OSError); the live search needs the PlausibleKnots census for *nh_* knots. Use the recorded path for this knot.
+
+======================================================================
+SUMMARY  (live search)
+======================================================================
+  K15n25044        --          RuntimeError: SnapPy cannot resolve base knot 'K15n25044' by name (OSError); the live search needs the PlausibleKnots census for *nh_* knots. Use the recorded path for this knot.
+----------------------------------------------------------------------
+  Shown not smoothly slice via Theorem 5.9: 0/1

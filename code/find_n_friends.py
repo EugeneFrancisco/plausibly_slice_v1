@@ -66,7 +66,8 @@ def n_surgery_slope(exterior, n: int) -> tuple[int, int]:
     meridian is (1, 0)).  n = 0 gives the longitude, i.e. the 0-surgery.
     """
     a, b = exterior.homological_longitude()
-    return (n + a, b)
+    import ipdb; ipdb.set_trace()
+    return (n + a, b) # (0, 1) -> (n + a, b)
 
 
 def _n_surgery_recovers(exterior, n: int, target) -> bool:

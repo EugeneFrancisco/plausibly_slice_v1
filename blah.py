@@ -5,5 +5,5 @@ six_two = sn.Manifold("6_2")
 
 knot_6_2 = Knot(six_two)
 
-friends = knot_6_2.find_n_friends(n=3, max_len=6)
+friends = knot_6_2.find_n_friends(n = 1, max_len=4)
 print(friends)
