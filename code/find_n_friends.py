@@ -31,6 +31,7 @@ from math import gcd
 
 import snappy
 from snappy.snap import nsagetools
+from tqdm import tqdm
 
 from find_0_friends import (
     is_knot_exterior,
@@ -119,7 +120,8 @@ def find_common_n_surgery_via_words(
         return
 
     other_knots = []
-    for g in geodesics:
+    print(f"Testing {len(geodesics)} geodesics for {n} friends.")
+    for g in tqdm(geodesics, desc=f"Testing geodesics for {n} friends"):
         if g.length.real() < min_len:
             continue
         if not _word_is_homology_generator(phi, g.word):
