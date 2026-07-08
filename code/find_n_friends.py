@@ -39,8 +39,11 @@ from find_0_friends import (
     safe_length_spectrum,
 )
 
+Slope = tuple[int, int]
 
-def _word_is_homology_generator(phi, word) -> bool:
+
+def _word_is_homology_generator(
+        phi: nsagetools.MapToAbelianization, word: str) -> bool:
     """
     True if ``word`` generates H_1 of the closed n-surgery.
 
@@ -48,6 +51,13 @@ def _word_is_homology_generator(phi, word) -> bool:
     (cyclic; Z when n = 0, trivial when n = 1).  A class generates a cyclic
     group Z/d iff its exponent is coprime to d, and gcd(e, 0) = |e| recovers
     the "generator of Z" test (|e| == 1) used for 0-friends.
+
+    Args:
+        phi: Abelianization map of pi_1(Z_K^{(n)}).
+        word: Group element to test, as a word in the generators.
+
+    Returns:
+        True iff ``word``'s class generates H_1.
     """
     divisors = phi.elementary_divisors
     if not divisors:            # H_1 trivial (n = 1): every class generates.
@@ -57,19 +67,26 @@ def _word_is_homology_generator(phi, word) -> bool:
     return gcd(exponent, int(divisors[0])) == 1
 
 
-def n_surgery_slope(exterior, n: int) -> tuple[int, int]:
+def n_surgery_slope(exterior: snappy.Manifold, n: int) -> Slope:
     """
     The integer n-surgery slope of a knot exterior: n*meridian + longitude.
 
     Uses the homological (Seifert) longitude, so the slope is correct
     regardless of how the exterior's peripheral basis is oriented (the
     meridian is (1, 0)).  n = 0 gives the longitude, i.e. the 0-surgery.
+
+    Args:
+        exterior: A one-cusped knot exterior.
+        n: The surgery coefficient.
+
+    Returns:
+        The filling slope (n + a, b) for homological longitude (a, b).
     """
     a, b = exterior.homological_longitude()
     return (n + a, b) # (0, 1) -> (n + a, b)
 
 
-def _closed_isometric(A, B) -> bool:
+def _closed_isometric(A: snappy.ManifoldHP, B: snappy.ManifoldHP) -> bool:
     """
     True if the two closed hyperbolic manifolds are isometric.
 
@@ -78,6 +95,12 @@ def _closed_isometric(A, B) -> bool:
     solution_type 2, and occasionally at a degenerate one where
     ``is_isometric_to`` throws.  is_isometric_to handles type 2 fine, so we
     reject only on a genuine volume mismatch and randomize past throws.
+
+    Args:
+        A, B: The closed manifolds to compare (left unmodified).
+
+    Returns:
+        True iff ``A`` and ``B`` are isometric.
     """
     A, B = A.copy(), B.copy()
     vol_A, vol_B = A.volume(), B.volume()
@@ -92,16 +115,56 @@ def _closed_isometric(A, B) -> bool:
     return False
 
 
-def _n_surgery_recovers(exterior, n: int, target) -> bool:
+def _geometric_triangulation(
+        M: snappy.ManifoldHP, tries: int = 30) -> snappy.ManifoldHP | None:
     """
-    True if the integer n-surgery on ``exterior`` is isometric to ``target``.
+    Randomize the closed manifold until it has a geometric (solution_type 1)
+    triangulation, which ``drill_word`` requires; return None if unreachable.
 
-    Guards against a homology generator whose dual slope is a rational or
-    (-n)-surgery rather than the integer n-surgery we are after.
+    A Dehn filling often lands at solution_type 2 (negatively oriented
+    tetrahedra).  Many such surgeries randomize to a type 1 triangulation of
+    the same manifold; some (e.g. 10_125's 3-surgery) never do, so we give up
+    after ``tries`` and the caller skips that surgery.
+
+    Args:
+        M: The closed manifold to retriangulate (modified in place).
+        tries: Maximum number of randomization attempts.
+
+    Returns:
+        ``M`` once it is solution_type 1, or None if unreachable.
     """
-    F = snappy.ManifoldHP(exterior)           # match target's precision
-    F.dehn_fill(n_surgery_slope(exterior, n))
-    return _closed_isometric(target, F)
+    for _ in range(tries):
+        if M.solution_type(enum=True) == 1:
+            return M
+        M.randomize()
+    return None
+
+
+def _n_surgery_recovers(
+        exterior: snappy.Manifold, n: int, target: snappy.ManifoldHP) -> bool:
+    """
+    True if the integer (+/-)n-surgery on ``exterior`` is isometric to ``target``.
+
+    Rejects a homology generator whose dual slope is a *rational* rather than
+    an integer surgery.  Both integer signs are accepted: SnapPy stores one
+    fixed chirality per knot, so a genuine n-friend may recover the target
+    only through its -n surgery (its mirror's +n surgery), as happens for the
+    10_132/10_125 and 6_2/K14n10164 examples.
+
+    Args:
+        exterior: The candidate friend's knot exterior.
+        n: The surgery coefficient.
+        target: The closed n-surgery Z_K^{(n)} to match.
+
+    Returns:
+        True iff the +n or -n surgery on ``exterior`` recovers ``target``.
+    """
+    for slope in (n_surgery_slope(exterior, n), n_surgery_slope(exterior, -n)):
+        F = snappy.ManifoldHP(exterior)       # match target's precision
+        F.dehn_fill(slope)
+        if _closed_isometric(target, F):
+            return True
+    return False
 
 
 def find_common_n_surgery_via_words(
@@ -118,12 +181,16 @@ def find_common_n_surgery_via_words(
     Drills the short geodesics of Z_K^{(n)} and keeps those whose exterior
     is again a knot exterior K' with n-surgery equal to Z_K^{(n)}.
 
-    Returns a list of 4-tuples encoding each n-friend K':
+    Args:
+        manifold: The knot K, as a name or SnapPy manifold.
+        n: The surgery coefficient.
+        max_len: Only drill geodesics up to this complex length.
+        min_len: Skip geodesics shorter than this length.
 
-    1. Word in pi_1(Z_K^{(n)}) for the geodesic that was drilled.
-    2. The complex length of said geodesic.
-    3. The volume of the exterior of K'.
-    4. A triangulation isosig of the exterior of K'.
+    Returns:
+        One 4-tuple (drilled word, complex length, exterior volume, exterior
+        isosig) per n-friend K' found, or None if Z_K^{(n)} has no drillable
+        (geometric) triangulation.
     """
     if sys.getrecursionlimit() < 50000:
         sys.setrecursionlimit(50000)
@@ -133,8 +200,9 @@ def find_common_n_surgery_via_words(
     E = snappy.ManifoldHP(manifold)
     M = E.copy()
     M.dehn_fill(n_surgery_slope(E, n))        # the n-surgery Z_K^{(n)}
-    if M.solution_type(enum=True) != 1:       # need a hyperbolic n-surgery
-        return
+    M = _geometric_triangulation(M)           # drill_word needs solution_type 1
+    if M is None:                             # non-hyperbolic or no geometric
+        return                                # triangulation reachable
 
     G = M.fundamental_group(False, False, False)
     phi = nsagetools.MapToAbelianization(G)

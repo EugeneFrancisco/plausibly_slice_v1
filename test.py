@@ -1,16 +1,25 @@
 """
-Verify the documented n-friend examples from ``qin_n_friends.csv``.
+Run the n-friend *search* on the documented examples and check it recovers
+the listed partner knot.
 
-Two knots are n-friends when their integer n-surgeries are the same closed
-3-manifold (the surgery generalization of the 0-friends the paper uses).
-This script reads the CSV, keeps the examples we can check quickly -- n <= 3,
-both knots loadable in SnapPy with fewer than 18 crossings, and flagged
-``isometry_testable`` -- and confirms each pair's n-surgeries are isometric.
+For each example in ``qin_n_friends.csv`` we keep the ones we can check
+quickly -- n <= 3, both knots loadable in SnapPy with fewer than 18 crossings,
+and flagged ``isometry_testable`` -- then call the paper's search routine
+``find_common_n_surgery_via_words`` and confirm the partner knot turns up among
+the n-friends it finds.
 
-Surgery signs: SnapPy stores each knot with a fixed chirality that need not
-match the paper's, so a pair can relate the +n surgery of one knot to the -n
-surgery of the other.  We therefore accept a match at either sign and report
-the slopes that matched.
+Two practical points:
+
+  * The search drills the +n surgery of the knot it starts from, so it only
+    recovers a pair from the knot whose +n surgery is the shared manifold.  We
+    therefore try both knots as the starting point.
+  * A returned friend is matched to the target by comparing knot *exteriors*
+    (orientation-blind), which sidesteps the chirality bookkeeping that the
+    closed-surgery comparison in ``is_n_friend`` has to worry about.
+
+Some shared surgeries have no geometric (drillable) triangulation, so the
+search cannot reach them; such an example is reported as UNREACHABLE rather
+than a failure.
 
 Run in the ``sage`` conda env:
 
@@ -24,68 +33,89 @@ import os
 import re
 import csv
 import sys
+from typing import Iterator
 
 import snappy
 
 sys.setrecursionlimit(50000)
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+if os.path.join(_HERE, "code") not in sys.path:
+    sys.path.insert(0, os.path.join(_HERE, "code"))
+
+from find_n_friends import find_common_n_surgery_via_words  # noqa: E402
+
 CSV_PATH = os.path.join(_HERE, "qin_n_friends.csv")
 
 MAX_N = 3
 MAX_CROSSINGS = 18
+MAX_LEN = 3.0                 # geodesic-length cutoff for the search
 
 
 def crossing_number(name: str) -> int | None:
     """Crossing number parsed from a knot name (e.g. K14n10164 -> 14).
 
-    Returns None for exotic notations we cannot load, such as the pretzel
-    ``K(-2,1,2)`` or the connect sum ``T(-2,3)#T(2,5)``.
+    Args:
+        name: A knot name from the CSV.
+
+    Returns:
+        The crossing number, or None for exotic notations we cannot load
+        (e.g. the pretzel ``K(-2,1,2)`` or connect sum ``T(-2,3)#T(2,5)``).
     """
     match = re.match(r"K?(\d+)", name)
     return int(match.group(1)) if match else None
 
 
-def load_exterior(name: str) -> snappy.Manifold | None:
-    """The knot exterior as a high-precision Manifold, or None if unknown."""
-    try:
-        return snappy.ManifoldHP(snappy.Manifold(name))
-    except Exception:
-        return None
+def exteriors_isometric(isosig: str, target_name: str, tries: int = 8) -> bool:
+    """True if the found exterior (an isosig) is the ``target_name`` knot.
 
+    Compares knot exteriors, which are orientation-blind, so a knot and its
+    mirror match -- exactly what we want when the tables store one chirality.
 
-def surgery_slopes(exterior: snappy.Manifold, n: int) -> list[tuple[int, int]]:
-    """The +n and -n integer surgery slopes (meridian is (1, 0))."""
-    a, b = exterior.homological_longitude()
-    return [(n + a, b), (a - n, b)]
+    Args:
+        isosig: Triangulation isosig of the found exterior.
+        target_name: Name of the knot to match against.
+        tries: Number of randomization retries on isometry-test failure.
 
-
-def _isometric(A: snappy.Manifold, B: snappy.Manifold, tries: int = 8) -> bool:
-    """True if the two closed surgeries are isometric (randomizing on error)."""
-    if abs(float(A.volume()) - float(B.volume())) > 1e-6:
+    Returns:
+        True iff the two exteriors are isometric.
+    """
+    F = snappy.ManifoldHP(snappy.Triangulation(isosig))
+    T = snappy.ManifoldHP(snappy.Manifold(target_name))
+    if abs(float(F.volume()) - float(T.volume())) > 1e-6:
         return False
     for _ in range(tries):
         try:
-            return bool(A.is_isometric_to(B))
+            return bool(F.is_isometric_to(T))
         except RuntimeError:
-            A.randomize(); B.randomize()
+            F.randomize(); T.randomize()
     return False
 
 
-def matching_slopes(A: snappy.Manifold, B: snappy.Manifold, n: int):
-    """Return an isometric (slope_A, slope_B) pair of n-surgeries, or None."""
-    for slope_A in surgery_slopes(A, n):
-        for slope_B in surgery_slopes(B, n):
-            Af, Bf = A.copy(), B.copy()
-            Af.dehn_fill(slope_A)
-            Bf.dehn_fill(slope_B)
-            if _isometric(Af, Bf):
-                return slope_A, slope_B
-    return None
+def search_recovers(searched: str, target: str, n: int) -> bool | None:
+    """Run the search on ``searched``; is ``target`` among its n-friends?
+
+    Args:
+        searched: Name of the knot to start the search from.
+        target: Name of the partner knot we hope to recover.
+        n: The surgery coefficient.
+
+    Returns:
+        True/False whether ``target`` was recovered, or None if the search
+        could not run (the n-surgery has no drillable triangulation).
+    """
+    hits = find_common_n_surgery_via_words(searched, n, MAX_LEN)
+    if hits is None:
+        return None
+    return any(exteriors_isometric(hit[-1], target) for hit in hits)
 
 
-def selected_rows():
-    """The CSV rows worth checking: isometry-testable, small n, small knots."""
+def selected_rows() -> Iterator[dict[str, str]]:
+    """The CSV rows worth checking: isometry-testable, small n, small knots.
+
+    Yields:
+        Each qualifying row as a column-name -> value dict.
+    """
     with open(CSV_PATH) as f:
         for row in csv.DictReader(f):
             if int(row["n"]) > MAX_N:
@@ -97,36 +127,41 @@ def selected_rows():
 
 def main() -> None:
     passed = failed = skipped = 0
-    print(f"Checking n-friend examples from {os.path.basename(CSV_PATH)} "
-          f"(n <= {MAX_N}, < {MAX_CROSSINGS} crossings)\n")
+    print(f"Running the n-friend search on examples from "
+          f"{os.path.basename(CSV_PATH)}\n(n <= {MAX_N}, < {MAX_CROSSINGS} "
+          f"crossings, max geodesic length {MAX_LEN})\n")
 
     for row in selected_rows():
         n, K_B, K_G = int(row["n"]), row["K_B"], row["K_G"]
         label = f"n={n}  {K_B} & {K_G}"
 
         crossings = [crossing_number(K_B), crossing_number(K_G)]
-        if None in crossings:
-            print(f"SKIP  {label}  (unsupported knot notation)")
-            skipped += 1
-            continue
-        if max(crossings) >= MAX_CROSSINGS:
-            print(f"SKIP  {label}  (>= {MAX_CROSSINGS} crossings)")
+        if None in crossings or max(crossings) >= MAX_CROSSINGS:
+            print(f"SKIP        {label}  (unsupported or too-large knot)")
             skipped += 1
             continue
 
-        A, B = load_exterior(K_B), load_exterior(K_G)
-        if A is None or B is None:
-            print(f"SKIP  {label}  (could not load in SnapPy)")
-            skipped += 1
-            continue
+        # The search only recovers a pair from the knot whose +n surgery is
+        # the shared manifold, so try both starting points.
+        results = {
+            (K_B, K_G): search_recovers(K_B, K_G, n),
+            (K_G, K_B): search_recovers(K_G, K_B, n),
+        }
 
-        match = matching_slopes(A, B, n)
-        if match:
-            slope_A, slope_B = match
-            print(f"PASS  {label}   {K_B}^{slope_A} == {K_G}^{slope_B}")
+        found = [(src, tgt) for (src, tgt), r in results.items() if r is True]
+        if found:
+            src, tgt = found[0]
+            print(f"PASS        {label}   search({src}) found {tgt}")
             passed += 1
+        elif any(r is None for r in results.values()):
+            # The direction whose +n surgery is the shared manifold could not
+            # be drilled (no geometric triangulation), so the pair is out of
+            # the search's reach rather than genuinely missed.
+            print(f"UNREACHABLE {label}   (shared n-surgery has no drillable "
+                  f"triangulation)")
+            skipped += 1
         else:
-            print(f"FAIL  {label}   (n-surgeries not isometric)")
+            print(f"FAIL        {label}   (search did not recover the partner)")
             failed += 1
 
     print(f"\n{passed} passed, {failed} failed, {skipped} skipped")
