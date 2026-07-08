@@ -66,8 +66,30 @@ def n_surgery_slope(exterior, n: int) -> tuple[int, int]:
     meridian is (1, 0)).  n = 0 gives the longitude, i.e. the 0-surgery.
     """
     a, b = exterior.homological_longitude()
-    import ipdb; ipdb.set_trace()
     return (n + a, b) # (0, 1) -> (n + a, b)
+
+
+def _closed_isometric(A, B) -> bool:
+    """
+    True if the two closed hyperbolic manifolds are isometric.
+
+    Unlike ``safe_is_isometric_to`` (which only compares cusped exteriors
+    that solve to solution_type 1), a Dehn filling routinely lands at
+    solution_type 2, and occasionally at a degenerate one where
+    ``is_isometric_to`` throws.  is_isometric_to handles type 2 fine, so we
+    reject only on a genuine volume mismatch and randomize past throws.
+    """
+    A, B = A.copy(), B.copy()
+    vol_A, vol_B = A.volume(), B.volume()
+    RR = vol_A.parent()
+    if abs(vol_A - vol_B) > RR(2)**(-RR(0.75)*RR.prec()):
+        return False
+    for _ in range(10):
+        try:
+            return bool(A.is_isometric_to(B))
+        except RuntimeError:
+            A.randomize(), B.randomize()
+    return False
 
 
 def _n_surgery_recovers(exterior, n: int, target) -> bool:
@@ -79,7 +101,7 @@ def _n_surgery_recovers(exterior, n: int, target) -> bool:
     """
     F = snappy.ManifoldHP(exterior)           # match target's precision
     F.dehn_fill(n_surgery_slope(exterior, n))
-    return bool(safe_is_isometric_to(target, F))
+    return _closed_isometric(target, F)
 
 
 def find_common_n_surgery_via_words(
@@ -122,6 +144,7 @@ def find_common_n_surgery_via_words(
 
     other_knots = []
     print(f"Testing {len(geodesics)} geodesics for {n} friends.")
+    count = 0
     for g in tqdm(geodesics, desc=f"Testing geodesics for {n} friends"):
         if g.length.real() < min_len:
             continue
@@ -139,9 +162,11 @@ def find_common_n_surgery_via_words(
         F.dehn_fill(slope)
         F.set_peripheral_curves('fillings')
         F.dehn_fill((0, 0))
+        count += 1
         if n != 0 and not _n_surgery_recovers(F, n, M):
             continue                          # rational-surgery coincidence
         F.randomize()
+        print("YAY, found something.")
         other_knots.append((g.word,
                             complex(g.length),
                             F.volume(),

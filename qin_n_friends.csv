@@ -1,0 +1,9 @@
+order,n,K_B,K_G,isometry_testable,source,notes
+1,1,6_2,K13n3596,True,"Ex. 3.2 (p.9), r=-1, m=0","Current test case"
+2,3,10_132,10_125,True,"Ex. 3.7 (p.11), (a,b,c,d)=(-1,2,-1,-1)","3-surgeries isometric hyperbolic; s(K_B)=s(K_G)"
+3,3,6_2,K14n10164,True,"Ex. 3.7 (p.11), (a,b,c,d)=(0,1,-1,-1)","Same 6_2 as row 1 but n=3"
+4,3,6_3,K14n15962,True,"Ex. 3.7 (p.11), (a,b,c,d)=(1,2,-1,-1)",""
+5,2,K(-2,1,2),K9_533,True,"Ex. 4.12 (p.15), L(-2,1,2;0)","s(K_B)=0, s(K_G)=2, tau=0 for both"
+6,3,K9_533,K(-2,1,3),True,"Ex. 4.10 (p.14), L(-2,1,-2;1)","K_B = K(-2,1,-2); s(K_G)=0, s(K_B)=2"
+7,0,11_270,K_G_unnamed,True,"Ex. 5.2 (p.17), (a,b)=(2,-1)","0-peculiar family; K_G unnamed in paper; s(K_G)=-2, s(K_B)=0"
+8,3,K12n121,T(-2,3)#T(2,5),False,"Ex. 3.7 (p.10)","K_G non-hyperbolic connect sum; isometry check N/A"
