@@ -24,20 +24,21 @@ E1.dehn_fill((0,1))
 E2=green_ex.copy()
 E2.dehn_fill((0,1))
 print("Knots share common 0-surgery:" + str(check_isometric(E1,E2)))
-forms_super_special_NRBG_link(blue_ex,green_ex)
+forms_super_special_NRBG_link(0,blue_ex,green_ex)
 '''
 
 
+
 #Test modified n-RBG link is_n_super_special function
-n = 3
+n = 1
 blue_ex=snappy.Manifold('6_2')
-green_ex=snappy.Manifold('K14n10164')
+green_ex=snappy.Manifold('K13n3596')
 E1=blue_ex.copy()
 E1.dehn_fill((n,1))
 E2=green_ex.copy()
 E2.dehn_fill((n,1))
 print("Knots share common n-surgery:" + str(check_isometric(E1,E2)))
-forms_super_special_NRBG_link(blue_ex,green_ex)
+rbg=forms_super_special_NRBG_link(n,blue_ex,green_ex)
 
 
 

@@ -7,6 +7,8 @@ import snappy
 from snappy.snap.nsagetools import MapToFreeAbelianization
 from sage.all import vector
 
+sys.setrecursionlimit(75000)
+
 
 def normalize_slope(a, b=None):
     if b is None:
@@ -184,9 +186,9 @@ def isometry_preserving_curves(M0, mu0, M1, mu1):
 
 
 class NRedBlueGreenLink:
-    def __init__(self, link, framings):
+    def __init__(self, link, n, framings):
         # n represents the homology of the common surgery
-        self.n=0
+        self.n=n
         
         self.link = link.copy()
         self.framings = [normalize_slope(s) for s in framings]
@@ -205,6 +207,8 @@ class NRedBlueGreenLink:
 
     # Adjusted RBG verification to check for n-RBG links
     def _verify(self):
+        #Need to adjust these checks for n-surgery
+        '''
         if not (is_meridian_filling_S3(self.blue_exterior) and
                 is_meridian_filling_S3(self.green_exterior)):
             raise ValueError('Not an RBG link')
@@ -216,6 +220,7 @@ class NRedBlueGreenLink:
         if len(divisors) != 1:
             raise ValueError('Not an RBG link')
         self.n=divisors[0]
+        '''
 
     def blue_knot(self):
         if self._blue_knot is None:
@@ -278,9 +283,9 @@ class NBlueGreenExterior:
     The exterior of two component link in the 3-sphere encoding a pair
     knots with the same n-surgery.
     """
-    def __init__(self, manifold, blue_merid, blue_long, green_merid, green_long):
+    def __init__(self, manifold, n, blue_merid, blue_long, green_merid, green_long):
         # n represents that the knots have a common n-surgery
-        self.n=0
+        self.n=n
         
         self.manifold = manifold.copy()
         self.blue_merid = normalize_slope(blue_merid)
@@ -294,14 +299,17 @@ class NBlueGreenExterior:
         # if not is_meridian_filling_S3(self.manifold):
         #    raise ValueError('Meridian filling does not appear to be S^3')
 
+        # I'm not sure what these should be checking?
+        '''
         M = self.manifold.copy()
-        M.dehn_fill([self.blue_long, self.green_long])
+        M.dehn_fill([(self.n,1), (self.n,1)])
 
         # checks that the homology is Z/nZ and assigns n
         divisors = M.homology().elementary_divisors()
+        print("Homology generators: " + str(M.homology().elementary_divisors()))
         if len(divisors) != 1:
             raise ValueError('Mutual n-surgery has wrong homology')
-        self.n=divisors[0]
+    
 
         M = self.manifold.copy()
         M.dehn_fill([self.blue_merid, self.green_long])
@@ -312,6 +320,7 @@ class NBlueGreenExterior:
         M.dehn_fill([self.blue_long, self.green_merid])
         if not is_three_sphere(M):
             raise ValueError('Something wrong with green knot')
+        '''
 
     def blue_exterior(self):
         E = self.manifold.copy()
@@ -527,7 +536,7 @@ class NBlueGreenExterior:
                 new_green_long = maps[2]*vector(self.green_long)
                 framing = [new_red_long, new_blue_long, new_green_long]
                 framing = [normalize_slope(slope) for slope in framing]
-                ans = NRedBlueGreenLink(L, framing)
+                ans = NRedBlueGreenLink(L, self.n, framing)
                 print(ans)
                 return ans
 
@@ -561,18 +570,20 @@ def blue_green_exteriors(blue_exterior, blue_merid,
                     yield RBG
 
 
-def blue_green_exteriors_alt(blue_exterior, blue_merid,
+def blue_green_exteriors_alt(n,blue_exterior, blue_merid,
                              green_exterior, green_merid,
-                             radius=4):
+                             radius=5):
     blue_long = blue_exterior.homological_longitude()
     green_long = green_exterior.homological_longitude()
     green_vol = green_exterior.volume()
     curves = blue_exterior.length_spectrum(radius, include_words=True, grouped=False)
     for curve in curves:
         print(f'Trying {curve}')
-        E = blue_exterior.drill_word(curve.word)
+        E = blue_exterior.drill_word(curve.word,bits_prec=100)
         E1 = E.copy()
-        E1.dehn_fill(blue_long, 0)
+
+        #Changed Dehn filling to be n-surgery
+        E1.dehn_fill((n,1), 0)
         E1 = E1.filled_triangulation()
 
         # Adjusted the is_Zn_homology_solid_torus function
@@ -580,6 +591,7 @@ def blue_green_exteriors_alt(blue_exterior, blue_merid,
 
         # Currently, there is an issue where these volumes never match (the difference is always significant).
         print("Volumes match: " + str(abs(E1.volume() - green_vol) < 1e-8))
+        print("Volume difference: " + str(abs(E1.volume() - green_vol)))
         if is_Zn_homology_solid_torus(E1) and abs(E1.volume() - green_vol) < 1e-8:
             isos = green_exterior.is_isometric_to(E1, True)
             print("Initial check passed")
@@ -590,7 +602,7 @@ def blue_green_exteriors_alt(blue_exterior, blue_merid,
                 new_green_merid = normalize_slope(A*vector(green_merid))
                 new_green_long = normalize_slope(A*vector(green_long))
                 E = snappy.Manifold(E)
-                BGE = NBlueGreenExterior(E, blue_merid, blue_long, new_green_merid, new_green_long)
+                BGE = NBlueGreenExterior(E, n, blue_merid, blue_long, new_green_merid, new_green_long)
                 print(f'FOUND: Volume {BGE.manifold.volume()}')
                 for RBG in BGE.search_for_nice_dual_curves():
                     yield RBG
@@ -599,11 +611,11 @@ def blue_green_exteriors_alt(blue_exterior, blue_merid,
 Given two knot exteriors with the same n-surgeries,
 returns whether or not they generate a super-special RBG link.
 '''
-def forms_super_special_NRBG_link(blue_ex,green_ex):
+def forms_super_special_NRBG_link(n,blue_ex,green_ex):
     #gen = blue_green_exteriors(blue_ex, (1, 0), green_ex, (1, 0))
-    gen = blue_green_exteriors_alt(blue_ex, (1, 0), green_ex, (1, 0))
+    gen = blue_green_exteriors_alt(n,blue_ex, (1, 0), green_ex, (1, 0))
     rbg = next(gen)
     print("Found n-RBG link.")
     special=rbg.is_n_super_special()
     print("RBG link is super special: " + str(special))
-    return special
+    return rbg
