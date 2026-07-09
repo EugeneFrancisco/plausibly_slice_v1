@@ -639,6 +639,15 @@ def blue_green_exteriors_alt(blue_exterior, blue_merid,
                     yield RBG
 
 
-if __name__ == '__main__':
-    import doctest
-    print(doctest.testmod())
+'''
+Given two knot exteriors with the same 0-surgeries,
+returns whether or not they generate a super-special RBG link.
+'''
+def forms_super_special_RBG_link(blue_ex,green_ex):
+    gen = blue_green_exteriors_alt(blue_ex, (1, 0), green_ex, (1, 0))
+    rbg = next(gen)
+    print("Found RBG link.")
+    special=rbg.is_super_special()
+    print("RBG link is super special: " + str(special))
+    return special
+
