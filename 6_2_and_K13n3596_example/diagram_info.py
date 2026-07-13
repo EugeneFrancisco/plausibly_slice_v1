@@ -1,0 +1,6 @@
+N = 1
+RED, BLUE, GREEN = 0, 1, 2
+FRAMINGS = [(-1, 1), (0, 1), (0, 1)]
+BLUE_KNOT = "6_2"
+GREEN_KNOT = "K13n3596"
+TWIST_PARAMETER = 0
