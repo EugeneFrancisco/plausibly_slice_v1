@@ -11,9 +11,8 @@ The three stages of the paper map onto the class as follows:
 
     1. 0-friends: ``Knot.zero_surgery``, ``Knot.is_zero_friend``,
        ``Knot.find_zero_friends``.
-    2. RBG links: ``Knot.search_for_rbg_link`` (live Section 5.11 search)
-       and ``Knot.recorded_rbg_link`` (fast, from the paper's CSV), plus
-       ``Knot.blue_green_knots`` to recover K_B, K_G from a link.
+    2. RBG links: ``Knot.search_for_rbg_link`` for 0-friends and
+       ``Knot.search_for_n_rbg_link`` for positive-n friends.
     3. s-invariants: ``Knot.rasmussen_s`` (shells out to KnotJob) and the
        static ``Knot.conclude_via_theorem_5_9``.
 
@@ -37,12 +36,11 @@ import subprocess
 
 import snappy
 
-# The paper's code lives in ``code/``; make it importable before importing.
 _HERE = os.path.dirname(os.path.abspath(__file__))
-if os.path.join(_HERE, "code") not in sys.path:
-    sys.path.insert(0, os.path.join(_HERE, "code"))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
 
-from rbg import (                                      # noqa: E402
+from rbg import (                                           # noqa: E402
     RedBlueGreenLink,
     BlueGreenExterior,
     blue_green_exteriors,
@@ -56,13 +54,15 @@ from snappy.exceptions import (                         # noqa: E402
     SnapPeaFatalError,
 )
 from find_0_friends import find_common_zero_surgery_via_words  # noqa: E402
-from find_n_friends import (                             # noqa: E402
+from find_n_friends import (                                # noqa: E402
     find_common_n_surgery_via_words,
     n_surgery_slope,
 )
+from n_rbg import NRedBlueGreenLink, find_n_special_rbg_link  # noqa: E402
 
-DATA_CSV = os.path.join(_HERE, "data", "unknown_with_0-friend_final.csv")
-KNOTJOB_JAR = os.path.join(_HERE, "tools", "knotjob", "KnotJob.jar")
+_ROOT = os.path.dirname(_HERE)
+DATA_CSV = os.path.join(_ROOT, "data", "unknown_with_0-friend_final.csv")
+KNOTJOB_JAR = os.path.join(_ROOT, "tools", "knotjob", "KnotJob.jar")
 
 # Numerical/geometric failures that SnapPy can raise on a single "bad"
 # drilled curve during the Section 5.11 search.  None of these mean the
@@ -326,7 +326,7 @@ class Knot:
         self.smoothly_slice: bool | None = None
         self.zero_friends: list[Knot] = []
         self.n_friends: dict[int, list[Knot]] = {}
-        self.rbg_link: RedBlueGreenLink | None = None
+        self.rbg_link: RedBlueGreenLink | NRedBlueGreenLink | None = None
 
     # ---- construction helpers ----------------------------------------
 
@@ -640,6 +640,58 @@ class Knot:
 
         if verbose:
             print("[search] no super-special RBG link found", flush=True)
+        return None
+
+    @staticmethod
+    def search_for_n_rbg_link(
+        knot_K,
+        knot_Kprime,
+        n: int,
+        meridian: tuple[int, int] = (1, 0),
+        radius: float = 4.0,
+        max_segments: int = 12,
+        try_both_orders: bool = True,
+        verbose: bool = True,
+    ) -> NRedBlueGreenLink | None:
+        """Search for an n-special RBG link realizing positive-n friends."""
+        if n <= 0:
+            raise ValueError("n must be positive; use search_for_rbg_link for n = 0")
+
+        knot_K = Knot.coerce(knot_K)
+        knot_Kprime = Knot.coerce(knot_Kprime)
+        E_K = knot_K._search_exterior()
+        E_Kprime = knot_Kprime._search_exterior()
+
+        orders = [(E_K, E_Kprime, "K -> K'")]
+        if try_both_orders:
+            orders.append((E_Kprime, E_K, "K' -> K"))
+
+        for blue, green, label in orders:
+            if verbose:
+                print(
+                    f"\n[search] n={n}  blue={blue}  green={green}  ({label})",
+                    flush=True,
+                )
+            rbg = find_n_special_rbg_link(
+                blue,
+                green,
+                n,
+                blue_merid=meridian,
+                green_merid=meridian,
+                radius=radius,
+                max_segments=max_segments,
+            )
+            if rbg is not None and rbg.is_n_special():
+                if verbose:
+                    print(f"[search] {n}-SPECIAL: {rbg}", flush=True)
+                knot_K.rbg_link = rbg
+                knot_Kprime.rbg_link = rbg
+                knot_K._add_n_friend(n, knot_Kprime)
+                knot_Kprime._add_n_friend(n, knot_K)
+                return rbg
+
+        if verbose:
+            print(f"[search] no {n}-special RBG link found", flush=True)
         return None
 
     @staticmethod
