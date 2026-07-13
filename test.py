@@ -141,8 +141,7 @@ def main() -> None:
             skipped += 1
             continue
 
-        # The search only recovers a pair from the knot whose +n surgery is
-        # the shared manifold, so try both starting points.
+        # We try both directions of searching for friends.
         results = {
             (K_B, K_G): search_recovers(K_B, K_G, n),
             (K_G, K_B): search_recovers(K_G, K_B, n),

@@ -234,7 +234,6 @@ def find_common_n_surgery_via_words(
         if n != 0 and not _n_surgery_recovers(F, n, M):
             continue                          # rational-surgery coincidence
         F.randomize()
-        print("YAY, found something.")
         other_knots.append((g.word,
                             complex(g.length),
                             F.volume(),

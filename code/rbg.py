@@ -623,6 +623,9 @@ def blue_green_exteriors_alt(blue_exterior, blue_merid,
         print(f'Trying {curve}')
         E = blue_exterior.drill_word(curve.word)
         E1 = E.copy()
+
+        # Possible culprit, needs to fill according to n when we are looking at n friends.
+        # Code somewhat works when we replace the below with E1.dehn_fill(n, 1).
         E1.dehn_fill(blue_long, 0)
         E1 = E1.filled_triangulation()
         if is_Z_homology_solid_torus(E1) and abs(E1.volume() - green_vol) < 1e-8:
