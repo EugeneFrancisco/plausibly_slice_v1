@@ -6,13 +6,14 @@ on your computer.
 
 #load('/Users/henrigreamo/Desktop/plausibly_slice_v1/rbg.py')
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/n-rbg.py')
+#load('/Users/henrigreamo/Desktop/plausibly_slice_v1/n_rbg_Eugene_version.py')
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/find_0_friends.py')
 
 def check_common_surgery(E1,E2,n):
     S1=E1.copy()
-    S1.dehn_fill((n,1))
+    S1.dehn_fill(n_surgery_slope(S1,n),0)
     S2=E2.copy()
-    S2.dehn_fill((n,1))
+    S2.dehn_fill(n_surgery_slope(S2,n),0)
     print("Volume difference: " + str(abs(S1.volume()-S2.volume())))
     if abs(S1.volume()-S2.volume())>0.0001:
         return false
