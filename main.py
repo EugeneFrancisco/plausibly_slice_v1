@@ -1,7 +1,7 @@
 from src.knot import Knot
 from tqdm import tqdm
 
-knot = Knot("K11n34")
+knot = Knot("6_2")
 friends = knot.find_n_friends(1)
 
 count = 0

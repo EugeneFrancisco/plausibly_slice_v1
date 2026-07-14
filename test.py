@@ -40,8 +40,8 @@ import snappy
 sys.setrecursionlimit(50000)
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-if os.path.join(_HERE, "code") not in sys.path:
-    sys.path.insert(0, os.path.join(_HERE, "code"))
+if os.path.join(_HERE, "src") not in sys.path:
+    sys.path.insert(0, os.path.join(_HERE, "src"))
 
 from find_n_friends import find_common_n_surgery_via_words  # noqa: E402
 

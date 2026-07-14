@@ -683,7 +683,6 @@ class Knot:
                 radius=radius,
                 max_segments=max_segments,
             )
-            import ipdb; ipdb.set_trace()
             if rbg is not None and rbg.is_n_special():
                 if verbose:
                     print(f"[search] {n}-SPECIAL: {rbg}", flush=True)

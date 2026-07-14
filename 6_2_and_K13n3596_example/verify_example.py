@@ -8,7 +8,7 @@ from plink import LinkManager
 from sage.all import matrix
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(HERE), "code"))
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "src"))
 
 from diagram_info import BLUE_KNOT, FRAMINGS, GREEN_KNOT, N  # noqa: E402
 from n_rbg import NRedBlueGreenLink, find_n_special_rbg_link  # noqa: E402
@@ -40,7 +40,7 @@ def direct_verification():
         "red-green is a Hopf link": is_hopf_link(link.sublink([0, 2])),
         "blue and green framings are zero": FRAMINGS[1:] == [(0, 1), (0, 1)],
         "red framing is -1": FRAMINGS[0] == (-1, 1),
-        "|det(M_L)| = 1": abs(int(framed_linking.det())) == N,
+        "det(M_L) = -1": int(framed_linking.det()) == -N,
         "NRedBlueGreenLink recognizes 1-special": rbg.is_n_special(),
         "K_B is 6_2": rbg.blue_exterior.is_isometric_to(
             snappy.Manifold(BLUE_KNOT)
@@ -70,7 +70,8 @@ def search_verification(known_rbg):
     """Check whether the public search rediscovers Qin's example."""
     print("\nSearch verification")
     found = find_n_special_rbg_link(
-        snappy.Manifold(BLUE_KNOT), snappy.Manifold(GREEN_KNOT), N
+        snappy.Manifold(BLUE_KNOT), snappy.Manifold(GREEN_KNOT), N,
+        target_exterior=known_rbg.exterior,
     )
     if found is None:
         print("  FAIL: find_n_special_rbg_link returned None")

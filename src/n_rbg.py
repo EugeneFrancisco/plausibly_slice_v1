@@ -77,9 +77,7 @@ class NRedBlueGreenLink:
         linking = matrix(L.linking_matrix())
         linking[0, 0] = r[0]
         linking[1, 1] = linking[2, 2] = 0
-        # This should be int(linking.det()) == -self.n
-        # AHHHHH
-        return abs(int(linking.det())) == self.n
+        return int(linking.det()) == -self.n
 
     # Backwards-compatible name used on henris-branch.
     is_n_super_special = is_n_special
@@ -89,7 +87,8 @@ class NBlueGreenExterior:
     """A two-cusped exterior encoding two knots with a common n-surgery."""
 
     def __init__(self, manifold, n, blue_merid, blue_long,
-                 green_merid, green_long):
+                 green_merid, green_long, blue_exterior=None,
+                 green_exterior=None):
         self.manifold = snappy.Manifold(manifold)
         self.n = n
         self.blue_merid = normalize_slope(blue_merid)
@@ -99,6 +98,10 @@ class NBlueGreenExterior:
         self.blue_n = self._integer_slope(self.blue_merid, self.blue_long, n)
         self.green_n = self._integer_slope(self.green_merid, self.green_long, n)
         self._verify()
+        self.blue_exterior = (snappy.Manifold(blue_exterior)
+                              if blue_exterior is not None else None)
+        self.green_exterior = (snappy.Manifold(green_exterior)
+                               if green_exterior is not None else None)
 
     @staticmethod
     def _integer_slope(meridian, longitude, n):
@@ -161,19 +164,80 @@ class NBlueGreenExterior:
             if not is_three_sphere(S3):
                 continue
 
+            # Sanity check to make sure that E recovers the blue and green exteriors that we
+            # origianlly want before continuing the search.
+            if not self._marking_recovers_pair(E, S3):
+                continue
+
             # We now have an exterior that we know is an RBG link and we need to convert it to
-            # an exterior. The meridian search above was all so that we could pass it into this
-            # function.
+            # an exterior.
             answer = self._link_from_exterior(E, S3, meridians)
             if answer is not None:
                 yield answer
 
+    def _marking_recovers_pair(self, exterior, filled):
+        """
+        Check the encoded knots before reconstructing a link diagram.
+        Args:
+            exterior: the three cusped manifold ordered R, B, G.
+            filled: A copy of exterior except it has been filled along the
+            red, blue, and green meridians. We already verified that this is S^3.
+        """
+        if self.blue_exterior is None or self.green_exterior is None:
+            return True
+
+        # pylint: disable=W0105
+        """
+        For each of the blue and green cusps, this loop:
+            - Copies this filled manifold.
+            - Removes that cusp's filling using (0, 0).
+            - Leaves the other two components meridionally filled.
+            - Obtains a one-cusped knot exterior in \(S^3\).
+            - Computes its homological longitude.
+        """
+        longitudes = []
+        for cusp in (1, 2):
+            knot = filled.copy()
+            knot.dehn_fill((0, 0), cusp)
+            longitudes.append(normalize_slope(knot.homological_longitude()))
+        blue_long, green_long = longitudes
+
+        # Make sure that we can recover the blue knot.
+        blue = exterior.copy()
+        # Fill along (1, 0) of red; do not fill blue; and fill along longitude of green.
+        blue.dehn_fill([(1, 0), (0, 0), green_long])
+        blue = blue.filled_triangulation()
+
+        # Do the same thing but for green
+        green = exterior.copy()
+        green.dehn_fill([(1, 0), blue_long, (0, 0)])
+        green = green.filled_triangulation()
+        try:
+            # Make sure that the blue and greens are isometric to the desired pairs.
+            return (blue.is_isometric_to(self.blue_exterior)
+                    and green.is_isometric_to(self.green_exterior))
+        except RuntimeError:
+            # We return True here because this function is only meant to be a filter and
+            # a runtime error with is_isometric_to doesn't necessarily mean that the two
+            # are not isometric.
+            return True
+
     def _link_from_exterior(self, exterior, filled, meridians):
-        # L is a Spherogram Link object. Here, we are going from the triangulation to an
-        # actual link object.
+        """Recover the signed n-special orientation of a link diagram."""
         L = filled.exterior_to_link(check_answer=False)
         L.simplify("global")
-        L = L.mirror()
+        # We will consider both L and L's mirror. Remember that L here is constructed from the
+        # exterior E, which we have verified above is a link with K_B and K_G components and
+        # that its red and blue/green components form Hopf links. These details translate
+        # to L's mirror.
+        for diagram in (L, L.mirror()):
+            answer = self._link_from_diagram(exterior, meridians, diagram)
+            if answer is not None:
+                return answer
+
+    def _link_from_diagram(self, exterior, meridians, link):
+        """Transport peripheral data to one choice of diagram orientation."""
+        L = link.copy()
 
         # A sanity check that L precisely corresponds to the original candidate exterior
         # with the same meridians.
@@ -250,7 +314,8 @@ def n_blue_green_exteriors(blue_exterior, green_exterior, n,
             mapped_long = normalize_slope(cusp_map * vector(green_long))
             try:
                 bge = NBlueGreenExterior(
-                    E, n, blue_merid, blue_long, mapped_merid, mapped_long)
+                    E, n, blue_merid, blue_long, mapped_merid, mapped_long,
+                    blue_exterior=blue, green_exterior=green)
             except ValueError:
                 continue
             # At this point in the code, bge is an exterior that we know will recover
@@ -262,7 +327,14 @@ def n_blue_green_exteriors(blue_exterior, green_exterior, n,
                     yield answer
 
 
-def find_n_special_rbg_link(blue_exterior, green_exterior, n, **kwargs):
-    """Return the first n-special RBG link found, or None."""
-    return next(n_blue_green_exteriors(
-        blue_exterior, green_exterior, n, **kwargs), None)
+def find_n_special_rbg_link(blue_exterior, green_exterior, n,
+                            target_exterior=None, **kwargs):
+    """Return the first matching n-special RBG link found, or None."""
+    answers = n_blue_green_exteriors(
+        blue_exterior, green_exterior, n, **kwargs)
+    if target_exterior is None:
+        return next(answers, None)
+
+    target = snappy.Manifold(target_exterior)
+    return next((answer for answer in answers
+                 if answer.exterior.is_isometric_to(target)), None)
