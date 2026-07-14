@@ -5,20 +5,19 @@ from src.knot import Knot
 from src.n_rbg import find_n_special_rbg_link
 from tqdm import tqdm
 
-FULL_SEARCH = False
+FULL_SEARCH = True
 
 if FULL_SEARCH:
 
-    knot = Knot("6_2")
-    friends = knot.find_n_friends(1)
-
-    count = 0
-    for friend in tqdm(friends):
-        identifier = friend[3]
-        knot_friend = Knot(identifier)
-        link = Knot.search_for_n_rbg_link(knot, knot_friend, 1)
-        if link is not None:
-            print("yay")
+    link = find_n_special_rbg_link(
+        snappy.Manifold("6_3"),
+        snappy.Link("K14n15962").mirror().exterior(),
+        3
+    )
+    if link is None:
+        print("none found")
+    else:
+        print("yay")
 else:
     manager = LinkManager()
     with open("6_2_and_K13n3596_example/diagram.lnk") as stream:

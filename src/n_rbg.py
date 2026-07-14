@@ -115,13 +115,15 @@ class NBlueGreenExterior:
             raise ValueError("mutual n-surgery has wrong homology")
 
         M = self.manifold.copy()
-        M.dehn_fill([self.blue_merid, self.green_n])
+        # Is the first field meant to be blue_long or blue_merid?
+        M.dehn_fill([self.blue_long, self.green_n])
         if not is_three_sphere(M):
-            raise ValueError("blue meridian filling is not S^3")
+            raise ValueError("blue longitude filling is not S^3")
         M = self.manifold.copy()
-        M.dehn_fill([self.blue_n, self.green_merid])
+        # Is the second field meant to be green_long or green_merid?
+        M.dehn_fill([self.blue_n, self.green_long])
         if not is_three_sphere(M):
-            raise ValueError("green meridian filling is not S^3")
+            raise ValueError("green longitude filling is not S^3")
 
     def search_for_nice_dual_curves(self, max_segments=12, radius=6.0):
         """Yield n-special links found by drilling the red component."""
@@ -268,7 +270,7 @@ class NBlueGreenExterior:
 
 def n_blue_green_exteriors(blue_exterior, green_exterior, n,
                            blue_merid=(1, 0), green_merid=(1, 0),
-                           radius=4.0, max_segments=12):
+                           radius=4.0, max_segments=20):
     """Yield n-special RBG links whose associated knots are the inputs."""
     if n <= 0:
         raise ValueError("use rbg.blue_green_exteriors_alt when n = 0")
@@ -317,6 +319,7 @@ def n_blue_green_exteriors(blue_exterior, green_exterior, n,
                     E, n, blue_merid, blue_long, mapped_merid, mapped_long,
                     blue_exterior=blue, green_exterior=green)
             except ValueError:
+                print("\nConstructor Failed!!!!!\n")
                 continue
             # At this point in the code, bge is an exterior that we know will recover
             # K_G and K_B when the n-surgery is done on the other's torus. All that

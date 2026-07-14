@@ -494,7 +494,7 @@ class Knot:
         M.dehn_fill(n_surgery_slope(M, n))
         return M
 
-    def is_n_friend(self, other, n: int, tries: int = 5) -> bool:
+    def is_n_friend(self, other, n: int, tries: int = 10) -> bool:
         """
         Certify whether ``self`` and ``other`` are n-friends.
 
