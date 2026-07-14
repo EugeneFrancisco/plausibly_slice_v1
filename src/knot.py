@@ -36,6 +36,8 @@ import subprocess
 
 import snappy
 
+from tqdm import tqdm
+
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
@@ -666,7 +668,7 @@ class Knot:
         if try_both_orders:
             orders.append((E_Kprime, E_K, "K' -> K"))
 
-        for blue, green, label in orders:
+        for blue, green, label in tqdm(orders):
             if verbose:
                 print(
                     f"\n[search] n={n}  blue={blue}  green={green}  ({label})",
@@ -681,6 +683,7 @@ class Knot:
                 radius=radius,
                 max_segments=max_segments,
             )
+            import ipdb; ipdb.set_trace()
             if rbg is not None and rbg.is_n_special():
                 if verbose:
                     print(f"[search] {n}-SPECIAL: {rbg}", flush=True)

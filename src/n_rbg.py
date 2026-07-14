@@ -77,6 +77,8 @@ class NRedBlueGreenLink:
         linking = matrix(L.linking_matrix())
         linking[0, 0] = r[0]
         linking[1, 1] = linking[2, 2] = 0
+        # This should be int(linking.det()) == -self.n
+        # AHHHHH
         return abs(int(linking.det())) == self.n
 
     # Backwards-compatible name used on henris-branch.
@@ -121,6 +123,7 @@ class NBlueGreenExterior:
     def search_for_nice_dual_curves(self, max_segments=12, radius=6.0):
         """Yield n-special links found by drilling the red component."""
         for curve in self.manifold.dual_curves(max_segments):
+            # Each of these curves is a candidate curve for the red knot to follow.
             if curve.filled_length.real() > radius:
                 break
             E = self.manifold.drill(curve)
@@ -130,37 +133,61 @@ class NBlueGreenExterior:
     def _drilled_manifold_is_n_special(self, manifold):
         E = manifold.copy()
         E1 = E.copy()
+        # Recall that we need the blue + red to be a Hopf link; and we need green + red to be
+        # a Hopf link. Here we are checking each of those conditions.
+        
+        # First check that green + red is Hopf link (by filling blue).
         E1.dehn_fill(self.blue_merid, 1)
         if not is_hopf_link_exterior(E1.filled_triangulation()):
             return None
         E2 = E.copy()
+
+        # Then check that blue + red is Hopf link (by filling green).
         E2.dehn_fill(self.green_merid, 2)
         if not is_hopf_link_exterior(E2.filled_triangulation()):
             return None
         if E.solution_type().startswith("contains"):
             return None
 
+        # We now need to actually find what the red meridian is of the red curve that we've found.
         for red_merid in E.short_slopes(12, first_cusps=[0])[0]:
             meridians = [red_merid, self.blue_merid, self.green_merid]
             S3 = E.copy()
             S3.dehn_fill(meridians)
+            # If the red meridian we are looking at truly is the red meridian, then gluing back in
+            # along the red meridian (and same with blue and green) should just recover S^3.
             if not is_three_sphere(S3):
                 continue
+
+            # We now have an exterior that we know is an RBG link and we need to convert it to
+            # an exterior. The meridian search above was all so that we could pass it into this
+            # function.
             answer = self._link_from_exterior(E, S3, meridians)
             if answer is not None:
                 yield answer
 
     def _link_from_exterior(self, exterior, filled, meridians):
+        # L is a Spherogram Link object. Here, we are going from the triangulation to an
+        # actual link object.
         L = filled.exterior_to_link(check_answer=False)
         L.simplify("global")
         L = L.mirror()
+
+        # A sanity check that L precisely corresponds to the original candidate exterior
+        # with the same meridians.
         iso = isometry_preserving_curves(
             exterior, meridians, L.exterior(), 3 * [(1, 0)])
         if iso is None:
             return None
+
+        # Of course it is possible that the components of L will be permuted version of the
+        # components in exterior. The line below reorders the components. We then redo the
+        # check and make sure that the isometry is perfect now.
         L = reorder_link_components(L, invert_perm(iso.cusp_images()))
         iso = isometry_preserving_curves(
             exterior, meridians, L.exterior(), 3 * [(1, 0)])
+
+        # Make sure that after reordering components to match, the isometry is perfect now.
         if iso is None or iso.cusp_images() != [0, 1, 2]:
             return None
         maps = iso.cusp_maps()
@@ -169,7 +196,7 @@ class NBlueGreenExterior:
             answer = NRedBlueGreenLink(
                 L, self.n, [red_frame, (0, 1), (0, 1)])
         except ValueError:
-            return None
+            return None 
         return answer if answer.is_n_special() else None
 
 
@@ -188,23 +215,45 @@ def n_blue_green_exteriors(blue_exterior, green_exterior, n,
     curves = blue.length_spectrum(radius, include_words=True, grouped=False)
     for curve in curves:
         E = blue.drill_word(curve.word, bits_prec=100)
+        # candidate here is a candidate blue-green exterior; a stepping stone
+        # towards the full rbg.
         candidate = E.copy()
+
+        # perform n-surgery on the candidate. The ultimate goal with candidate
+        # in this part of the code is to find an exterior of two torus s.t.
+        # n-surgery on either torus recovers K_B or K_G respectively.
         candidate.dehn_fill(n_surgery_slope(blue, n), 0)
         candidate = candidate.filled_triangulation()
+
+        # A sanity check that, once dehn-filled, the candidate is a filled torus.
+        # Remember that, once the dehn-filling above is done, we should be left with
+        # E(K_G).
         if not is_Z_homology_solid_torus(candidate):
             continue
+        # Sanity check that the candidate's volume is the same as K_G. green_volume here is the
+        # volume of K_G.
         if abs(candidate.volume() - green_volume) >= 1e-8:
             continue
+
+        # Each element of isometries is a map of the isometry between green and candidate.
         isometries = green.is_isometric_to(candidate, True)
         for iso in isometries:
             cusp_map = iso.cusp_maps()[0]
+            
+            # We need to find which slope of the green torus in X corresponds to the meridian
+            # in K_G. We use the isometry to tell us and this is stored in mapped_merid.
             mapped_merid = normalize_slope(cusp_map * vector(green_merid))
+
+            # Same thing but for longitude.
             mapped_long = normalize_slope(cusp_map * vector(green_long))
             try:
                 bge = NBlueGreenExterior(
                     E, n, blue_merid, blue_long, mapped_merid, mapped_long)
             except ValueError:
                 continue
+            # At this point in the code, bge is an exterior that we know will recover
+            # K_G and K_B when the n-surgery is done on the other's torus. All that
+            # is left is to find a red knot for the link.
             for answer in bge.search_for_nice_dual_curves(max_segments):
                 if (answer.blue_exterior.is_isometric_to(blue)
                         and answer.green_exterior.is_isometric_to(green)):

@@ -5,8 +5,8 @@ requires KnotJob and Java 23 or newer.
 
 Examples:
 
-    python code/rbg_search.py 6_2 K13n3596 1
-    python code/rbg_search.py K11n34 <friend-isosig> 0
+    python scripts/rbg_search.py 6_2 K13n3596 1
+    python scripts/rbg_search.py K11n34 <friend-isosig> 0
 """
 
 from __future__ import annotations
@@ -16,9 +16,9 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(HERE), "code"))
+sys.path.insert(0, os.path.dirname(HERE))
 
-from knot import Knot  # noqa: E402
+from src.knot import Knot  # noqa: E402
 
 
 def find_rbg_link(knot_b: Knot, knot_g: Knot, n: int):
