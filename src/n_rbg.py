@@ -135,14 +135,14 @@ class NBlueGreenExterior:
         E1 = E.copy()
         # Recall that we need the blue + red to be a Hopf link; and we need green + red to be
         # a Hopf link. Here we are checking each of those conditions.
-        
-        # First check that green + red is Hopf link (by filling blue).
+
+        # Sanity check. We need to make sure that green + red is Hopf link (by filling blue).
         E1.dehn_fill(self.blue_merid, 1)
         if not is_hopf_link_exterior(E1.filled_triangulation()):
             return None
         E2 = E.copy()
 
-        # Then check that blue + red is Hopf link (by filling green).
+        # Sanity check. Then check that blue + red is Hopf link (by filling green).
         E2.dehn_fill(self.green_merid, 2)
         if not is_hopf_link_exterior(E2.filled_triangulation()):
             return None
@@ -150,12 +150,14 @@ class NBlueGreenExterior:
             return None
 
         # We now need to actually find what the red meridian is of the red curve that we've found.
+        # 12 here is a geometric length cuttoff.
         for red_merid in E.short_slopes(12, first_cusps=[0])[0]:
             meridians = [red_merid, self.blue_merid, self.green_merid]
             S3 = E.copy()
             S3.dehn_fill(meridians)
-            # If the red meridian we are looking at truly is the red meridian, then gluing back in
-            # along the red meridian (and same with blue and green) should just recover S^3.
+            # Sanity check. If the red meridian we are looking at truly is the red meridian, then
+            # gluing back in along the red meridian (and same with blue and green) should just
+            # recover S^3.
             if not is_three_sphere(S3):
                 continue
 
