@@ -411,86 +411,106 @@ class NBlueGreenExterior:
             framing = [merid, self.blue_merid, self.green_merid]
             E3.dehn_fill(framing)
 
+            print("Checking framing: " + str(framing))
 
-            #Claude code:
+            #Checks that the meridionally filled manifold is S^3
             if not is_three_sphere(E3):
                 continue
+            
+            print('    Found link exterior, checking framing')
 
+            #Checks that the blue and green exteriors match the original (Claude code)
             if not self._marking_recovers_pair(E, E3):
+                print("Failed blue-green exterior check")
                 continue
 
+            #Checks that the new and expected longitudes match (DG code)
+            self.check_framing(E3)
+
+            #Finds the RBG link given a valid exterior (Claude code)
             answer = self._link_from_exterior(E, E3, framing)
+            
+            #Finds the link diagram given a valid RBG exterior (DG code)
+            #rbg = self.rbg_link_from_exterior(E3, framing)
+
             if answer is not None:
+                print("Claude code found an RBG link")
                 return answer
 
             '''
-            print("Checking framing: " + str(framing))
-
-            #Checks that the found filled exterior gives the proper longitudes
-            #This framing check may not be necessary
-            if is_three_sphere(E3):
-                print('    Found link exterior, checking framing')
-                framing_ok = True
-                targets = [(1, 0),
-                           normalize_slope(self.blue_long),
-                           normalize_slope(self.green_long)]
-
-                #Checks that filling the 2nd and 3rd cusps (i=1 and i=2) gives the expected longitude
-                for i in range(1, 3):
-                    E4 = E3.copy()
-                    E4.dehn_fill((0, 0), i)
-                    longitude = normalize_slope(E4.homological_longitude())
-                    if longitude != targets[i]:
-                        framing_ok = False
-                        break
-
-                if not framing_ok:
-                    print('    Framing is not super-special')
-                    continue
-                print('    Framing good, finding the link diagram')
-
-                #Finds the link diagram given a valid RBG exterior (denoted Y in the DG paper)
-
-                #Gets the RBG link from the filled exterior (which keeps a record of where it has been filled)
-                L = E3.exterior_to_link(check_answer=False)
-
-                #Tries to simplify the link diagram as much as possible
-                L.simplify('global')
-                
-                #Finds all isometry preserving curves (after first reordering the link components)
-                #Note: the first set of isometries is needed to understand how to reorder the link components
-                X = L.exterior()
-                iso = isometry_preserving_curves(E, framing, X, 3*[(1, 0)])
-                L = reorder_link_components(L, invert_perm(iso.cusp_images()))
-                X = L.exterior()
-                iso = isometry_preserving_curves(E, framing, X, 3*[(1, 0)])
-                
-                
-                assert iso.cusp_images() == [0, 1, 2]
-                maps = iso.cusp_maps()
-
-                print("Isometry maps: " + str(maps))
-
-                #Uses the isometries to compute the new longitudes/framings
-                print("0th isometry map: " + str(maps[0]))
-                new_red_long = maps[0]*vector((1, 0))
-                print("Red longitude: " + str(new_red_long))
-                new_blue_long = maps[1]*vector(self.blue_long)
-                new_green_long = maps[2]*vector(self.green_long)
-                
-                framing = [new_red_long, new_blue_long, new_green_long] 
-                framing = [normalize_slope(slope) for slope in framing]
-
-                print("Normalized framing: " + str(framing))
-
-                #Initalizes an n-RBG link using the found link and framing
-                try:
-                    ans = NRedBlueGreenLink(L, self.n, framing)
-                    print(ans)
-                    return ans
-                except:
-                    print("Invalid RBG link; trying another red meridian")
+            if rbg is not None:
+                print("DG code found an RBG link")
+                return rbg
             '''
+
+        
+    #Checks the framing of the RBG link (based on original DG code)
+    def check_framing(self,exterior):
+        
+        framing_ok = True
+        targets = [(1, 0),
+                   normalize_slope(self.blue_long),
+                   normalize_slope(self.green_long)]
+
+        #Checks that filling the 2nd and 3rd cusps (i=1 and i=2) gives the expected longitude
+        for i in range(1, 3):
+            E = exterior.copy()
+            E.dehn_fill((0, 0), i)
+            longitude = normalize_slope(E.homological_longitude())
+            #print(str(i) + " longitude: " + str(longitude))
+            #print("target: " + str(targets[i]))
+            if longitude != targets[i]:
+                framing_ok = False
+                break
+
+        if not framing_ok:
+            print('    Framing is not super-special')
+            return False
+        print('    Framing good, finding the link diagram')
+        return True
+
+    #Finds the RBG link given the exterior (based on original DG code)
+    def rbg_link_from_exterior(self,E,meridians):
+        #Gets the RBG link from the filled exterior (which keeps a record of where it has been filled)
+        L = E.exterior_to_link(check_answer=False)
+
+        #Tries to simplify the link diagram as much as possible
+        L.simplify('global')
+                
+        #Finds all isometry preserving curves (after first reordering the link components)
+        #Note: the first set of isometries is needed to understand how to reorder the link components
+        X = L.exterior()
+        iso = isometry_preserving_curves(E, meridians, X, 3*[(1, 0)])
+        L = reorder_link_components(L, invert_perm(iso.cusp_images()))
+        X = L.exterior()
+        iso = isometry_preserving_curves(E, meridians, X, 3*[(1, 0)])
+                 
+        assert iso.cusp_images() == [0, 1, 2]
+        maps = iso.cusp_maps()
+
+        print("Isometry maps: " + str(maps))
+
+        #Uses the isometries to compute the new longitudes/framings
+        #print("0th isometry map: " + str(maps[0]))
+        new_red_long = maps[0]*vector((1, 0))
+        #print("Red longitude: " + str(new_red_long))
+        new_blue_long = maps[1]*vector(self.blue_long)
+        new_green_long = maps[2]*vector(self.green_long)
+                
+        framing = [new_red_long, new_blue_long, new_green_long] 
+        framing = [normalize_slope(slope) for slope in framing]
+
+        print("Normalized framing: " + str(framing))
+
+        #Initalizes an n-RBG link using the found link and framing
+        try:
+            ans = NRedBlueGreenLink(L, self.n, framing)
+            print(ans)
+            return ans
+        except:
+            print("Invalid RBG link")
+            return None
+    
 
     #The three methods below were written by Claude:
     def _marking_recovers_pair(self, exterior, filled):
@@ -575,7 +595,9 @@ class NBlueGreenExterior:
             answer = NRedBlueGreenLink(
                 L, self.n, [red_frame, (0, 1), (0, 1)])
         except ValueError:
-            return None 
+            print("Issue with RBG link")
+            return None
+        print ("RBG link is valid")
         return answer
 
 
