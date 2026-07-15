@@ -248,29 +248,10 @@ class NRedBlueGreenLink:
             print("Divisors: " + str(E.homology().elementary_divisors()))
             raise ValueError("Not an n-RBG link; Homology invalid")
 
-    def blue_knot(self):
-        if self._blue_knot is None:
-            self._blue_knot = self.blue_exterior.exterior_to_link()
-        return self._blue_knot
-
-    def green_knot(self):
-        if self._green_knot is None:
-            self._green_knot = self.green_exterior.exterior_to_link()
-        return self._green_knot
-
     def __repr__(self):
         r, b, g = self.framings
         num_cross = len(self.link.crossings)
         return f"<{self.n}-RBG link of {num_cross} crossings with r={r}, b={b}, g={g}>"
-
-    def is_symmetric(self):
-        """
-        An RBG link is symmetric when S^3_{b, g}(B U G) is also S^3.
-        """
-        E = self.exterior.copy()
-        r, b, g = self.framings
-        E.dehn_fill([(1, 0), b, g])
-        return is_three_sphere(E)
     
     # Adjusted super_special condition to n_special
     def is_n_special(self):
@@ -289,9 +270,14 @@ class NRedBlueGreenLink:
         Additionally, n-special also requires that the linking matrix M_L satisfies n=-det(M_L).
         """
         r, b, g = self.framings
-        if self.framings[1:] != [(0, 1), (0, 1)]:
+
+        #Checks that the framings are as expected
+        if self.framings[1:] != [(0, 1), (0, 1)] or r[1] != 1:
             return False
+        
         L = self.link
+
+        #Checks that each component is the unlink
         for i in range(3):
             if not is_unlink(L.sublink([i])):
                 return False
@@ -309,7 +295,9 @@ class NRedBlueGreenLink:
         print("N: " + str(self.n))
         print("Satisfies matrix condition: " + str(M_L.det()==-self.n))
 
-        return is_hopf_link(L.sublink([0, 1])) and is_hopf_link(L.sublink([0, 2])) and (M_L.det()==-self.n)
+        #Checks the linking matrix condition and whether RUB and RUG are Hopf links
+        is_special = is_hopf_link(L.sublink([0, 1])) and is_hopf_link(L.sublink([0, 2])) and (M_L.det()==-self.n)
+        return is_special
 
 
 class NBlueGreenExterior:
@@ -317,7 +305,7 @@ class NBlueGreenExterior:
     The exterior of two component link in the 3-sphere encoding a pair
     knots with the same n-surgery. Denoted in the DG paper as X.
     """
-    def __init__(self, manifold, n, blue_merid, blue_long, green_merid, green_long):
+    def __init__(self, manifold, n, blue_merid, blue_long, green_merid, green_long, blue_exterior, green_exterior):
         # n represents that the knots have a common n-surgery
         self.n=n
         
@@ -327,16 +315,21 @@ class NBlueGreenExterior:
         self.green_merid = normalize_slope(green_merid)
         self.green_long = normalize_slope(green_long)
 
-        #Computes the n-surgery coefficients for the blue and green cusps (I think these coefficients are right?)
+        #Computes the n-surgery coefficients for the blue and green cusps
         self.blue_coef=normalize_slope(n*self.blue_merid[0]+self.blue_long[0],n*self.blue_merid[1]+self.blue_long[1])
         self.green_coef=normalize_slope(n*self.green_merid[0]+self.green_long[0],n*self.green_merid[1]+self.green_long[1])
 
+        '''
         #For debugging
         print("Blue surgery coefficients: " + str(self.blue_coef))
         print("Green surgery coefficients: " + str(self.green_coef))
+        '''
 
         #Automatically verifies that X satisfies all the necessary properties (this check shouldn't usually fail)
         self._verify()
+
+        self.blue_exterior = (snappy.Manifold(blue_exterior) if blue_exterior is not None else None)
+        self.green_exterior = (snappy.Manifold(green_exterior) if green_exterior is not None else None)
 
     # Adjusted self verification to account for n-surgery
     def _verify(self):
@@ -348,21 +341,23 @@ class NBlueGreenExterior:
             print("Homological divisors " + str(M.homology().elementary_divisors()))
             raise ValueError("Mutual n-surgery has wrong homology")
 
-        #Checks that the filled exterior gives a blue and green knot respectively
+        '''
+        #Checks that the filled exterior gives a blue and green knot respectively (maybe change these coefficients to longitudes?)
         M = self.manifold.copy()
-        M.dehn_fill([self.blue_merid, self.green_coef])
+        M.dehn_fill([self.blue_long, self.green_coef])
         if not is_three_sphere(M):
             print("Filled Manifold Homology: " + str(M.homology()))
             raise ValueError('Something wrong with blue knot')
 
         M = self.manifold.copy()
-        M.dehn_fill([self.blue_coef, self.green_merid])
+        M.dehn_fill([self.blue_coef, self.green_long])
         if not is_three_sphere(M):
             print("Filled Manifold Homology: " + str(M.homology()))
             raise ValueError('Something wrong with green knot')
+        '''
 
     #Searches for potential geodesics representing the red knot and returns the n-RBG link (if found)
-    def search_for_nice_dual_curves(self, max_segments=12, radius=6.0, only_one_per_length=True):
+    def search_for_nice_dual_curves(self, max_segments=12, radius=6.0):
         M = self.manifold
 
         #Runs through simple closed curves in the BGE exterior
@@ -416,7 +411,22 @@ class NBlueGreenExterior:
             framing = [merid, self.blue_merid, self.green_merid]
             E3.dehn_fill(framing)
 
-            #Checks that the found red meridian gives a proper framing
+
+            #Claude code:
+            if not is_three_sphere(E3):
+                continue
+
+            if not self._marking_recovers_pair(E, E3):
+                continue
+
+            answer = self._link_from_exterior(E, E3, framing)
+            if answer is not None:
+                return answer
+
+            '''
+            print("Checking framing: " + str(framing))
+
+            #Checks that the found filled exterior gives the proper longitudes
             #This framing check may not be necessary
             if is_three_sphere(E3):
                 print('    Found link exterior, checking framing')
@@ -425,6 +435,7 @@ class NBlueGreenExterior:
                            normalize_slope(self.blue_long),
                            normalize_slope(self.green_long)]
 
+                #Checks that filling the 2nd and 3rd cusps (i=1 and i=2) gives the expected longitude
                 for i in range(1, 3):
                     E4 = E3.copy()
                     E4.dehn_fill((0, 0), i)
@@ -439,29 +450,136 @@ class NBlueGreenExterior:
                 print('    Framing good, finding the link diagram')
 
                 #Finds the link diagram given a valid RBG exterior (denoted Y in the DG paper)
-                #I don't quite understand this section (isn't E3 just the 3-sphere?)
+
+                #Gets the RBG link from the filled exterior (which keeps a record of where it has been filled)
                 L = E3.exterior_to_link(check_answer=False)
+
+                #Tries to simplify the link diagram as much as possible
                 L.simplify('global')
-                L = L.mirror()
+                
+                #Finds all isometry preserving curves (after first reordering the link components)
+                #Note: the first set of isometries is needed to understand how to reorder the link components
                 X = L.exterior()
                 iso = isometry_preserving_curves(E, framing, X, 3*[(1, 0)])
                 L = reorder_link_components(L, invert_perm(iso.cusp_images()))
                 X = L.exterior()
                 iso = isometry_preserving_curves(E, framing, X, 3*[(1, 0)])
+                
+                
                 assert iso.cusp_images() == [0, 1, 2]
                 maps = iso.cusp_maps()
+
+                print("Isometry maps: " + str(maps))
+
+                #Uses the isometries to compute the new longitudes/framings
+                print("0th isometry map: " + str(maps[0]))
                 new_red_long = maps[0]*vector((1, 0))
+                print("Red longitude: " + str(new_red_long))
                 new_blue_long = maps[1]*vector(self.blue_long)
                 new_green_long = maps[2]*vector(self.green_long)
-
-                framing = [new_red_long, new_blue_long, new_green_long]
                 
+                framing = [new_red_long, new_blue_long, new_green_long] 
                 framing = [normalize_slope(slope) for slope in framing]
 
+                print("Normalized framing: " + str(framing))
+
                 #Initalizes an n-RBG link using the found link and framing
-                ans = NRedBlueGreenLink(L, self.n, framing)
-                print(ans)
-                return ans
+                try:
+                    ans = NRedBlueGreenLink(L, self.n, framing)
+                    print(ans)
+                    return ans
+                except:
+                    print("Invalid RBG link; trying another red meridian")
+            '''
+
+    #The three methods below were written by Claude:
+    def _marking_recovers_pair(self, exterior, filled):
+        """
+        Check the encoded knots before reconstructing a link diagram.
+        Args:
+            exterior: the three cusped manifold ordered R, B, G.
+            filled: A copy of exterior except it has been filled along the
+            red, blue, and green meridians. We already verified that this is S^3.
+        """
+        if self.blue_exterior is None or self.green_exterior is None:
+            return True
+
+        # pylint: disable=W0105
+        """
+        For each of the blue and green cusps, this loop:
+            - Copies this filled manifold.
+            - Removes that cusp's filling using (0, 0).
+            - Leaves the other two components meridionally filled.
+            - Obtains a one-cusped knot exterior in \(S^3\).
+            - Computes its homological longitude.
+        """
+        longitudes = []
+        for cusp in (1, 2):
+            knot = filled.copy()
+            knot.dehn_fill((0, 0), cusp)
+            longitudes.append(normalize_slope(knot.homological_longitude()))
+        blue_long, green_long = longitudes
+
+        # Make sure that we can recover the blue knot.
+        blue = exterior.copy()
+        # Fill along (1, 0) of red; do not fill blue; and fill along longitude of green.
+        blue.dehn_fill([(1, 0), (0, 0), green_long])
+        blue = blue.filled_triangulation()
+
+        # Do the same thing but for green
+        green = exterior.copy()
+        green.dehn_fill([(1, 0), blue_long, (0, 0)])
+        green = green.filled_triangulation()
+        try:
+            # Make sure that the blue and greens are isometric to the desired pairs.
+            return (blue.is_isometric_to(self.blue_exterior)
+                    and green.is_isometric_to(self.green_exterior))
+        except RuntimeError:
+            # We return True here because this function is only meant to be a filter and
+            # a runtime error with is_isometric_to doesn't necessarily mean that the two
+            # are not isometric.
+            return True
+
+    def _link_from_exterior(self, exterior, filled, meridians):
+        """Recover the signed n-special orientation of a link diagram."""
+        L = filled.exterior_to_link(check_answer=False)
+        L.simplify("global")
+        answer = self._link_from_diagram(exterior, meridians, L)
+        if answer is not None:
+            return answer
+
+    def _link_from_diagram(self, exterior, meridians, link):
+        """Transport peripheral data to one choice of diagram orientation."""
+        L = link.copy()
+
+        # A sanity check that L precisely corresponds to the original candidate exterior
+        # with the same meridians.
+        iso = isometry_preserving_curves(
+            exterior, meridians, L.exterior(), 3 * [(1, 0)])
+        if iso is None:
+            return None
+
+        # Of course it is possible that the components of L will be permuted version of the
+        # components in exterior. The line below reorders the components. We then redo the
+        # check and make sure that the isometry is perfect now.
+        L = reorder_link_components(L, invert_perm(iso.cusp_images()))
+        iso = isometry_preserving_curves(
+            exterior, meridians, L.exterior(), 3 * [(1, 0)])
+
+        # Make sure that after reordering components to match, the isometry is perfect now.
+        if iso is None or iso.cusp_images() != [0, 1, 2]:
+            return None
+        maps = iso.cusp_maps()
+        red_frame = maps[0] * vector((1, 0))
+        try:
+            answer = NRedBlueGreenLink(
+                L, self.n, [red_frame, (0, 1), (0, 1)])
+        except ValueError:
+            return None 
+        return answer
+
+
+                    
 
 
 #Returns a generator of n-RBG links given the blue and green exteriors
@@ -515,7 +633,7 @@ def blue_green_exteriors(n,blue_exterior, blue_merid,
                 E = snappy.Manifold(E)
 
                 #Defines an NBlueGreenExterior based on X
-                BGE = NBlueGreenExterior(E, n, blue_merid, blue_long, new_green_merid, new_green_long)
+                BGE = NBlueGreenExterior(E, n, blue_merid, blue_long, new_green_merid, new_green_long, blue_exterior, green_exterior)
                 print(f'FOUND: Volume {BGE.manifold.volume()}')
 
                 #Searches through potential RBG exteriors from drilling the BGE
@@ -528,7 +646,7 @@ def blue_green_exteriors(n,blue_exterior, blue_merid,
 Given two knot exteriors with the same n-surgeries, outputs whether or not they form
 an n-super-special n-RBG link and returns the found link.
 '''
-def forms_super_special_NRBG_link(n,blue_ex,green_ex):
+def forms_special_NRBG_link(n,blue_ex,green_ex):
     gen = blue_green_exteriors(n,blue_ex, (1, 0), green_ex, (1, 0))
     #Takes the first n-special RBG link found
     for rbg in gen:
