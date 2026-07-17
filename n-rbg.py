@@ -248,6 +248,17 @@ class NRedBlueGreenLink:
             print("Divisors: " + str(E.homology().elementary_divisors()))
             raise ValueError("Not an n-RBG link; Homology invalid")
 
+    #Returns K_B and K_G respectively
+    def blue_knot(self):
+        if self._blue_knot is None:
+            self._blue_knot = self.blue_exterior.exterior_to_link()
+        return self._blue_knot
+
+    def green_knot(self):
+        if self._green_knot is None:
+            self._green_knot = self.green_exterior.exterior_to_link()
+        return self._green_knot
+    
     def __repr__(self):
         r, b, g = self.framings
         num_cross = len(self.link.crossings)
@@ -476,7 +487,7 @@ class NBlueGreenExterior:
 
         #Tries to simplify the link diagram as much as possible
         L.simplify('global')
-                
+        
         #Finds all isometry preserving curves (after first reordering the link components)
         #Note: the first set of isometries is needed to understand how to reorder the link components
         X = L.exterior()
@@ -491,12 +502,10 @@ class NBlueGreenExterior:
         print("Isometry maps: " + str(maps))
 
         #Uses the isometries to compute the new longitudes/framings
-        #print("0th isometry map: " + str(maps[0]))
         new_red_long = maps[0]*vector((1, 0))
-        #print("Red longitude: " + str(new_red_long))
         new_blue_long = maps[1]*vector(self.blue_long)
         new_green_long = maps[2]*vector(self.green_long)
-                
+        
         framing = [new_red_long, new_blue_long, new_green_long] 
         framing = [normalize_slope(slope) for slope in framing]
 
