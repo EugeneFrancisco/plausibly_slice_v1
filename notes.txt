@@ -1,0 +1,7 @@
+The "name" of the geodesic:
+
+First, an equivalence class is formed by taking a bunch of 
+small geodesics and appending them. E.g. "aBdAcb." This defines
+an equivalence class of lots of loops (most not geodesic) but there
+will be a representative which is geodesic. Call that representative
+gamma. The game is to check whether gamma is a knot!
