@@ -109,6 +109,7 @@ class NBlueGreenExterior:
                                 n * meridian[1] + longitude[1]))
 
     def _verify(self):
+        # uhhh wtf is this doing?
         M = self.manifold.copy()
         M.dehn_fill([self.blue_n, self.green_n])
         if _cyclic_homology_order(M) != self.n:
