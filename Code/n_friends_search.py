@@ -5,7 +5,12 @@ on your computer.
 '''
 import pandas as pd
 import ast
+
+#Change these file paths to match your own computer
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/find_n_friends.py')
+
+out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends.csv"
+in_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/plausibly_unknown.csv"
 
 #Checks that the manifolds have the same n-surgery
 def check_common_surgery(E1,E2,n):
@@ -49,9 +54,104 @@ def check_mirrors(L1,L2,n):
             E2=L2.mirror().exterior()
         print("Check #" + str(i) + ": " + str(check_common_surgery(E1,E2,n)))
 
+def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check=False):
+    ans = find_common_n_surgery_via_words(knot_ex,n)
+    if len(ans)==0 and double_check:
+        print(f"No {n}-friends found; trying again")
+        ans = find_common_n_surgery_via_words(knot_ex,n)
+
+    if len(ans)==0:
+        print(f"No {n}-friends found")
+    else:
+        print(f"# of {n}-friends found: {len(ans)}")
+
+    result = []
+    for j in range(len(ans)):
+        friend_ex = snappy.Manifold(ans[j][3])
+        friend_knot = friend_ex.exterior_to_link()
+
+        #I know this step seems weird but otherwise it fails the check common surgery
+        friend_ex=friend_knot.exterior()
+
+        verify = True
+                
+        if not check_common_surgery(knot_ex,friend_ex,n):
+            print(f"Friend {j} failed surgery verification check")
+            friend_knot = friend_knot.mirror()
+            friend_ex = friend_knot.exterior()
+            if not check_common_surgery(knot_ex,friend_ex,n):
+                print(f"Mirror of friend {j} failed surgery verification check")
+                verify = False
+                
+        friend_PD_code = friend_knot.PD_code()
+        friend_num_crossings = len(friend_knot.crossings)
+        friend_volume = float(friend_ex.volume())
+                
+        result.append({
+            "id_num":id_num,
+            "num_crossings":friend_num_crossings,
+            "volume":friend_volume,
+            "n":n,
+            "verification":verify,
+            "n_friend_name":knot_name,
+            "n_friend_index": i,
+            "knot_PD_code":str(friend_PD_code),
+            "n_friend_PD_code":str(knot_PD_code)})
+    return result
+
+#Warning: this code reruns and overrides whatever data is at entry id_num
+def rerun(id_num: int, n_friend_index: int, n: int, result_index: int = 0, double_check: bool = False):
+    data_out = pd.read_csv(out_file_path)
+    data_in = pd.read_csv(in_file_path)
+
+    #Sometimes SageMath typecasts integers as its own special class of Ring Integers, so this code accounts for that
+    id_num = int(id_num)
+    i = int(n_friend_index)
+    n = int(n)
+    result_index = int(result_index)
+    
+    
+    knot_name = data_in.at[i-1,"name"]
+    knot_PD_code = ast.literal_eval(data_in.at[i-1,"PD_codes"])
+    knot_volume = data_in.at[i-1,"volume"]
+    knot = snappy.Link(knot_PD_code)
+    knot_ex = knot.exterior()
+    
+    verified = data_out.at[id_num-1,"verification"]
+    #print(data_out.loc[id_num-1])
+
+    if verified:
+        print(f"Line {id_num} has been verified as correct.")
+        confirm = input("Confirm overriding data(Y/N): ")
+        if confirm != "Y":
+            return
+        
+    if knot_volume < 0:
+        print("Knot is not hyperbolic")
+        return
+    print(f"Rerunning knot {i} with n={n} at ID_num={id_num}: " + str(knot_name))
+    result = search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check)
+    print()
+
+    #Overrides the data at id_num
+    if len(result) > 0:
+        data_out.iloc[int(id_num) - 1] = pd.Series(result[result_index])
+        data_out.to_csv(out_file_path, index=False)
+
+def rerun_all_unverified():
+    data_out = pd.read_csv(out_file_path)
+    unverified = data_out.loc[data_out["verification"]==False]
+    #print(unverified)
+    for i in range(len(unverified)):
+        row = unverified.iloc[i]
+        id_num = row["id_num"]
+        n_friend_index = row["n_friend_index"]
+        n = row["n"]
+
+        #Note that if this process would normally return multiple n-friends, then this will only show the first one
+        rerun(id_num, n_friend_index,n)
+
 def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=False):
-    out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends.csv"
-    in_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/plausibly_unknown.csv"
     data_out = pd.read_csv(out_file_path)
     data_in = pd.read_csv(in_file_path)
 
@@ -63,12 +163,8 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
         data_out=pd.DataFrame([])
 
     new_data=[]
-    
-    #df.loc[len(df)]=[1,5,2.6,3,2,"K14n001",[[1,0]],[[2,1]]]
-    #df.to_csv(file_path, index=False)
+
     for i in range (start,end + 1):
-        
-        
         knot_name = data_in.at[i-1,"name"]
         knot_PD_code = ast.literal_eval(data_in.at[i-1,"PD_codes"])
         knot_volume = data_in.at[i-1,"volume"]
@@ -80,47 +176,9 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
             continue
         for n in range(1, max_n+1):
             print(f"Checking knot {i} with n={n}: " + str(knot_name))
-            ans = find_common_n_surgery_via_words(knot_ex,n)
-            if len(ans)==0 and double_check:
-                print(f"No {n}-friends found; trying again")
-                ans = find_common_n_surgery_via_words(knot_ex,n)
-
-            if len(ans)==0:
-                print(f"No {n}-friends found")
-            else:
-                print(f"# of {n}-friends found: {len(ans)}")
-            
-            for j in range(len(ans)):
-                #I know this step seems weird but otherwise it fails the check common surgery
-                friend_ex = snappy.Manifold(ans[j][3])
-                friend_knot = friend_ex.exterior_to_link()
-                friend_ex=friend_knot.exterior()
-
-                verify = True
-                
-                if not check_common_surgery(knot_ex,friend_ex,n):
-                    print(f"Friend {j} failed surgery verification check")
-                    friend_knot = knot.mirror()
-                    friend_ex = friend_knot.exterior()
-                    if not check_common_surgery(knot_ex,friend_ex,n):
-                        print(f"Mirror of friend {j} failed surgery verification check")
-                        verify = False
-                
-                friend_PD_code = friend_knot.PD_code()
-                friend_num_crossings = len(friend_knot.crossings)
-                friend_volume = float(friend_ex.volume())
-                
-                new_data.append({
-                    "id_num":id_num,
-                    "num_crossings":friend_num_crossings,
-                    "volume":friend_volume,
-                    "n":n,
-                    "verification":verify,
-                    "n_friend_name":knot_name,
-                    "n_friend_index": i,
-                    "knot_PD_code":friend_PD_code,
-                    "n_friend_PD_code":knot_PD_code})
-                id_num += 1
+            result = search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check=False)
+            new_data = new_data + result
+            id_num += len(result)
             print()
 
         #This might be slow, but it regularly updates the output data

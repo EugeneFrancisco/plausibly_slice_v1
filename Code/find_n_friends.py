@@ -292,7 +292,13 @@ def find_common_n_surgery_via_words(
             continue
         if not _word_is_homology_generator(phi, g.word):
             continue
-        F = M.drill_word(g.word).filled_triangulation()
+        #Very rarely this line throws an ObjectCloseToCoreCurve error
+        F = None
+        try:
+            F = M.drill_word(g.word).filled_triangulation()
+        except:
+            print("Error: failed to drill curve")
+            continue
         if F.solution_type(enum=True) not in [1, 2]:
             continue
         if safe_is_isometric_to(E, F):        # the geodesic recovers K itself
