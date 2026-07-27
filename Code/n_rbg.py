@@ -353,19 +353,20 @@ class NBlueGreenExterior:
             raise ValueError("Mutual n-surgery has wrong homology")
 
         '''
-        #Checks that the filled exterior gives a blue and green knot respectively (maybe change these coefficients to longitudes?)
+        #This check fails (should be the symmetric version of the other check)
         M = self.manifold.copy()
-        M.dehn_fill([self.blue_long, self.green_coef])
+        M.dehn_fill([self.blue_merid, self.green_coef])
         if not is_three_sphere(M):
-            print("Filled Manifold Homology: " + str(M.homology()))
+            print("Filled Manifold Homology: " + str(M.homology())
             raise ValueError('Something wrong with blue knot')
-
+        '''
+        
+        #This check generally works (ensures that S^3_n(K_B)\gamma is homeomorphic to E(K_G))
         M = self.manifold.copy()
-        M.dehn_fill([self.blue_coef, self.green_long])
+        M.dehn_fill([self.blue_coef, self.green_merid])
         if not is_three_sphere(M):
             print("Filled Manifold Homology: " + str(M.homology()))
             raise ValueError('Something wrong with green knot')
-        '''
 
     #Searches for potential geodesics representing the red knot and returns the n-RBG link (if found)
     def search_for_nice_dual_curves(self, max_segments=12, radius=6.0):

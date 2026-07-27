@@ -4,10 +4,10 @@ use sage directly from the terminal and load the files based on their pathways
 on your computer.
 '''
 
-#load('/Users/henrigreamo/Desktop/plausibly_slice_v1/rbg.py')
-#load('/Users/henrigreamo/Desktop/plausibly_slice_v1/n-rbg.py')
-load('/Users/henrigreamo/Desktop/plausibly_slice_v1/n-rbg.py')
-load('/Users/henrigreamo/Desktop/plausibly_slice_v1/find_n_friends.py')
+#load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/rbg.py')
+#load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/n_rbg.py')
+load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/n_rbg.py')
+load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/find_n_friends.py')
 
 #Having the same hyperbolic volume doesn't prevent the manifolds from being the same
 def check_common_surgery(E1,E2,n):

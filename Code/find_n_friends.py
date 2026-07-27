@@ -25,13 +25,34 @@ Example usage::
   sage: ans = find_common_n_surgery_via_words('K11n34', 0, 3)   # 0-friends
   sage: ans = find_common_n_surgery_via_words('K11n34', 2, 3)   # 2-friends
 """
-
 import sys
 from math import gcd
 
 import snappy
 from snappy.snap import nsagetools
 from tqdm import tqdm
+
+def is_three_sphere(manifold):
+    """
+    True means the manifold is definitely S^3.
+
+    False means it is *likely* not S^3.
+    """
+    T = manifold
+    order = T.homology().order()
+    if order == 'infinite' or order > 1:
+        return False
+    G = snappy.Manifold(T)
+    if G.solution_type(enum=True) == 1:
+         return False
+    for i in range(2):
+        if T.fundamental_group().num_generators() == 0:
+            return True
+        F = T.filled_triangulation()
+        if F.fundamental_group().num_generators() == 0:
+            return True
+        T.randomize()
+    return False
 
 def is_knot_exterior(manifold):
     """
