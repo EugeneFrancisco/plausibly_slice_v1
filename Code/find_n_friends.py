@@ -275,13 +275,15 @@ def find_common_n_surgery_via_words(
     M = E.copy()
     M.dehn_fill(n_surgery_slope(E, n))        # the n-surgery Z_K^{(n)}
     M = _geometric_triangulation(M)           # drill_word needs solution_type 1
-    if M is None:                             # non-hyperbolic or no geometric
+    if M is None:
+        print("Failed to find a geometric triangulation.") # non-hyperbolic or no geometric
         return                                # triangulation reachable
 
     G = M.fundamental_group(False, False, False)
     phi = nsagetools.MapToAbelianization(G)
     geodesics = safe_length_spectrum(M, max_len)
     if geodesics is None:
+        print("No geodesics found.")
         return
 
     other_knots = []

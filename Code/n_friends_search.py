@@ -5,6 +5,7 @@ on your computer.
 '''
 import pandas as pd
 import ast
+import caffeine
 
 #Change these file paths to match your own computer
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/find_n_friends.py')
@@ -56,6 +57,8 @@ def check_mirrors(L1,L2,n):
 
 def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check=False):
     ans = find_common_n_surgery_via_words(knot_ex,n)
+    if not ans:
+        ans = []
     if len(ans)==0 and double_check:
         print(f"No {n}-friends found; trying again")
         ans = find_common_n_surgery_via_words(knot_ex,n)
@@ -138,7 +141,7 @@ def rerun(id_num: int, n_friend_index: int, n: int, result_index: int = 0, doubl
         data_out.iloc[int(id_num) - 1] = pd.Series(result[result_index])
         data_out.to_csv(out_file_path, index=False)
 
-def rerun_all_unverified():
+def rerun_all_unverified(double_check=False):
     data_out = pd.read_csv(out_file_path)
     unverified = data_out.loc[data_out["verification"]==False]
     #print(unverified)
@@ -149,11 +152,13 @@ def rerun_all_unverified():
         n = row["n"]
 
         #Note that if this process would normally return multiple n-friends, then this will only show the first one
-        rerun(id_num, n_friend_index,n)
+        rerun(id_num, n_friend_index,n,double_check=double_check)
 
 def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=False):
     data_out = pd.read_csv(out_file_path)
     data_in = pd.read_csv(in_file_path)
+
+    caffeine.on()
 
     #Warning: if there's only one entry the code will override it (it assumes the first row is empty)
     id_num = 1
@@ -165,6 +170,14 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
     new_data=[]
 
     for i in range (start,end + 1):
+        '''
+        For now, I'm going to keep these non-slice knots as a test for the program
+        sliceness = int(data_in.at[i-1,"slice"])
+        if sliceness == -1:
+            print("Knot is not slice")
+            continue
+        '''
+        
         knot_name = data_in.at[i-1,"name"]
         knot_PD_code = ast.literal_eval(data_in.at[i-1,"PD_codes"])
         knot_volume = data_in.at[i-1,"volume"]
@@ -176,6 +189,8 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
             continue
         for n in range(1, max_n+1):
             print(f"Checking knot {i} with n={n}: " + str(knot_name))
+            
+            result = []
             result = search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check=False)
             new_data = new_data + result
             id_num += len(result)
@@ -185,6 +200,7 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
         new_rows = pd.DataFrame(new_data)
         out = pd.concat([data_out,new_rows], ignore_index=True)
         out.to_csv(out_file_path, index=False)
+    caffeine.off()
                 
             
         
