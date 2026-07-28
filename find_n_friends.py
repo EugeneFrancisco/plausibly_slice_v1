@@ -30,8 +30,14 @@ import sys
 from math import gcd
 
 import snappy
+from snappy.geometric_structure.geodesic.check_away_from_core_curve import (
+    ObjectCloseToCoreCurve,
+)
 from snappy.snap import nsagetools
 from tqdm import tqdm
+
+from find_0_friends import is_three_sphere
+
 
 def is_knot_exterior(manifold):
     """
@@ -271,7 +277,10 @@ def find_common_n_surgery_via_words(
             continue
         if not _word_is_homology_generator(phi, g.word):
             continue
-        F = M.drill_word(g.word).filled_triangulation()
+        try:
+            F = M.drill_word(g.word).filled_triangulation()
+        except ObjectCloseToCoreCurve:
+            continue
         if F.solution_type(enum=True) not in [1, 2]:
             continue
         if safe_is_isometric_to(E, F):        # the geodesic recovers K itself

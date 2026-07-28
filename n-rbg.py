@@ -319,7 +319,7 @@ class NBlueGreenExterior:
     def __init__(self, manifold, n, blue_merid, blue_long, green_merid, green_long, blue_exterior, green_exterior):
         # n represents that the knots have a common n-surgery
         self.n=n
-        
+
         self.manifold = manifold.copy()
         self.blue_merid = normalize_slope(blue_merid)
         self.blue_long = normalize_slope(blue_long)
@@ -352,20 +352,24 @@ class NBlueGreenExterior:
             print("Homological divisors " + str(M.homology().elementary_divisors()))
             raise ValueError("Mutual n-surgery has wrong homology")
 
-        '''
-        #Checks that the filled exterior gives a blue and green knot respectively (maybe change these coefficients to longitudes?)
+
+        # Checks that the filled exterior gives a blue and green knot respectively
+        # X(mu_B, n*mu_G + lambda_G) should be S^3.
         M = self.manifold.copy()
-        M.dehn_fill([self.blue_long, self.green_coef])
+        M.dehn_fill([self.blue_merid, self.green_coef])
+        # M.dehn_fill([self.blue_long, self.green_coef])
         if not is_three_sphere(M):
             print("Filled Manifold Homology: " + str(M.homology()))
             raise ValueError('Something wrong with blue knot')
 
+        # X(n*mu_B + lambda_B, mu_G) should be S^3.d
         M = self.manifold.copy()
-        M.dehn_fill([self.blue_coef, self.green_long])
+        M.dehn_fill([self.blue_coef, self.green_merid])
+        # M.dehn_fill([self.blue_coef, self.green_long])
         if not is_three_sphere(M):
             print("Filled Manifold Homology: " + str(M.homology()))
             raise ValueError('Something wrong with green knot')
-        '''
+        
 
     #Searches for potential geodesics representing the red knot and returns the n-RBG link (if found)
     def search_for_nice_dual_curves(self, max_segments=12, radius=6.0):
@@ -664,7 +668,16 @@ def blue_green_exteriors(n,blue_exterior, blue_merid,
                 E = snappy.Manifold(E)
 
                 #Defines an NBlueGreenExterior based on X
-                BGE = NBlueGreenExterior(E, n, blue_merid, blue_long, new_green_merid, new_green_long, blue_exterior, green_exterior)
+                BGE = NBlueGreenExterior(
+                    E,
+                    n,
+                    blue_merid,
+                    blue_long,
+                    new_green_merid,
+                    new_green_long,
+                    blue_exterior,
+                    green_exterior
+                )
                 print(f'FOUND: Volume {BGE.manifold.volume()}')
 
                 #Searches through potential RBG exteriors from drilling the BGE
