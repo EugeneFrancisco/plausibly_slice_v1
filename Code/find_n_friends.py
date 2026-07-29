@@ -248,7 +248,8 @@ def find_common_n_surgery_via_words(
         min_len: float = 0.0,
     ) -> list[tuple[str, complex, float, str]] | None:
     """
-    Find n-friends of a knot whose n-surgery is hyperbolic.
+    Find n-friends of a knot whose n-surgery is hyperbolic
+    where n is taken from the list of n_values (more efficient).
 
     Generalizes ``find_common_zero_surgery_via_words`` to any n >= 0; the
     two agree at n = 0.  For a knot K, let Z_K^{(n)} be the n-surgery.
@@ -273,14 +274,20 @@ def find_common_n_surgery_via_words(
 
     E = snappy.ManifoldHP(manifold)
     M = E.copy()
-    M.dehn_fill(n_surgery_slope(E, n))        # the n-surgery Z_K^{(n)}
-    M = _geometric_triangulation(M)           # drill_word needs solution_type 1
-    if M is None:
-        print("Failed to find a geometric triangulation.") # non-hyperbolic or no geometric
-        return                                # triangulation reachable
+    # the n-surgery Z_K^{(n)}
+    M.dehn_fill(n_surgery_slope(E, n))
 
+    # drill_word needs solution_type 1
+    M = _geometric_triangulation(M)           
+    if M is None:
+        # non-hyperbolic or no geometric
+        print("Failed to find a geometric triangulation.") 
+        return                                
+
+    # triangulation reachable
     G = M.fundamental_group(False, False, False)
     phi = nsagetools.MapToAbelianization(G)
+
     geodesics = safe_length_spectrum(M, max_len)
     if geodesics is None:
         print("No geodesics found.")
@@ -294,6 +301,7 @@ def find_common_n_surgery_via_words(
             continue
         if not _word_is_homology_generator(phi, g.word):
             continue
+        
         #Very rarely this line throws an ObjectCloseToCoreCurve error
         F = None
         try:

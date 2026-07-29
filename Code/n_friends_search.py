@@ -6,6 +6,7 @@ on your computer.
 import pandas as pd
 import ast
 import caffeine
+from tqdm import tqdm
 
 #Change these file paths to match your own computer
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/find_n_friends.py')
@@ -55,6 +56,33 @@ def check_mirrors(L1,L2,n):
             E2=L2.mirror().exterior()
         print("Check #" + str(i) + ": " + str(check_common_surgery(E1,E2,n)))
 
+#Tries to simplify a knot as much as possible
+def simplify_knot(knot, iterations: int = 5, type_3_limit: int = 1000):
+    K = knot.copy()
+    for i in tqdm(range(iterations), desc="Attempting to simplify knot"):
+        K.simplify('global',type_3_limit)
+    crossings_reduction = len(knot.crossings)-len(K.crossings)
+    print("Reduced crossings by: " + str(crossings_reduction))
+    return K
+
+#Simplifies the table entries as much as possible (adjust parameters for less/more simplification)
+#Note that this doesn't reverify anything (the knots should still be the same knot)
+def simplify_table(start: int, end: int):
+    data = pd.read_csv(out_file_path)
+
+    caffeine.on()
+    for i in range(start,end+1):
+        print(f"Simplifying knot {i}")
+        PD_code = ast.literal_eval(data.at[i-1,"knot_PD_code"])
+        K=snappy.Link(PD_code)
+        K=simplify_knot(K)
+        data.at[i-1,"knot_PD_code"]=str(K.PD_code())
+        data.at[i-1,"num_crossings"]=int(len(K.crossings))
+        data.to_csv(out_file_path, index=False)
+
+    caffeine.off()
+    
+#Searchs for n-friends of knot and returns all the relevant information about each found n-friend
 def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check=False):
     ans = find_common_n_surgery_via_words(knot_ex,n)
     if not ans:
@@ -91,7 +119,7 @@ def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, do
         friend_volume = float(friend_ex.volume())
                 
         result.append({
-            "id_num":id_num,
+            "id_num":(id_num + j),
             "num_crossings":friend_num_crossings,
             "volume":friend_volume,
             "n":n,
@@ -102,7 +130,7 @@ def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, do
             "n_friend_PD_code":str(knot_PD_code)})
     return result
 
-#Warning: this code reruns and overrides whatever data is at entry id_num
+#This code reruns and overrides whatever data is at entry id_num
 def rerun(id_num: int, n_friend_index: int, n: int, result_index: int = 0, double_check: bool = False):
     data_out = pd.read_csv(out_file_path)
     data_in = pd.read_csv(in_file_path)
@@ -136,11 +164,15 @@ def rerun(id_num: int, n_friend_index: int, n: int, result_index: int = 0, doubl
     result = search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check)
     print()
 
+    #Makes sure the result has the correct id_num (it can be off sometimes)
+    result[result_index]["id_num"]=id_num
+
     #Overrides the data at id_num
     if len(result) > 0:
         data_out.iloc[int(id_num) - 1] = pd.Series(result[result_index])
         data_out.to_csv(out_file_path, index=False)
 
+#Reruns and overrides the data at each row which has "False" under verification
 def rerun_all_unverified(double_check=False):
     data_out = pd.read_csv(out_file_path)
     unverified = data_out.loc[data_out["verification"]==False]
@@ -154,10 +186,12 @@ def rerun_all_unverified(double_check=False):
         #Note that if this process would normally return multiple n-friends, then this will only show the first one
         rerun(id_num, n_friend_index,n,double_check=double_check)
 
+#Searches for n-friends of the knots with index in [start,end]
 def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=False):
     data_out = pd.read_csv(out_file_path)
     data_in = pd.read_csv(in_file_path)
 
+    #Turns on caffeine to suppress macOS sleep functions
     caffeine.on()
 
     #Warning: if there's only one entry the code will override it (it assumes the first row is empty)
@@ -196,7 +230,7 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
             id_num += len(result)
             print()
 
-        #This might be slow, but it regularly updates the output data
+        #Regularly updates the output data
         new_rows = pd.DataFrame(new_data)
         out = pd.concat([data_out,new_rows], ignore_index=True)
         out.to_csv(out_file_path, index=False)
