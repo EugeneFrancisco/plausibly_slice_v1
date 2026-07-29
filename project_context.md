@@ -9,15 +9,15 @@ for 0-friends of a knot and then use pairs of 0-friends to compute RBG links (se
 super-special, then we know the traces of K_G and K_B will be diffeomorphic (Theorem 5.8). This gives us a way
 to categorize K_B and K_G as not smoothly slice when one of K_G or K_B have non-zero s-invariant (Theorem 5.9).
 
-The ultimate goal of this project is to replicate Theorem 5.10 for n = 0 and for larger n. The first step
-and first task was to be able to find n-friends of a given knot. Check the find_n_friends.py function
-for the current implementation. At this point, this code seems like it generally works.
+The ultimate goal of this project is to replicate Theorem 5.10 for n = 0 and for larger n. The first
+step towards this goal, to find n-friends of various knots with unknown sliceness, is already done.
+The knots on which we have looked for friends and their corresponding friends can be found in
+results/n_friends.csv.
 
-The next part of this project is to get the RBG search code working for n > 0. Some progress has
-already been made and you can see the code for that in n-rbg.py, which generalizes much of the code
-from rbg.py. To check the code, I am using the link diagram in 6_2_and_K13n3596_example which saves
-a known RBG link from Figure 6 of Qin et al. This link diagram can be verified using the existing
-code but the existing RBG generalization fails to actually find this link.
+The next part of this project is to compute s-invariants of the friends that have been found in
+n_friends.csv. Ultimately, these invariants will be used to disqualify some of these knots from
+being slice and an RBG link should be able to transfer slice disqualification to the other friend.
+As such, the next goal of this project will be to get s-invariant calculation code working locally.
 
 More details about this can be found in dunfield_and_gong_abridged.pdf and Qin_et_al.pdf.
 
