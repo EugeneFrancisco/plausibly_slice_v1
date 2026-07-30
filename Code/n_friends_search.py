@@ -14,6 +14,22 @@ load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/find_n_friends.py')
 out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends.csv"
 in_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/plausibly_unknown.csv"
 
+data_types = {
+    "id_num": int,
+    "num_crossings": int,
+    "volume": float,
+    "n": int,
+    "verification": bool,
+    "s": str,
+    "s_2": str,
+    "s_3": str,
+    "obstructs": str,
+    "n_friend_name": str,
+    "n_friend_index": int,
+    "knot_PD_code": str,
+    "n_friend_PD_code": str
+    }
+
 #Checks that the manifolds have the same n-surgery
 def check_common_surgery(E1,E2,n):
     S1=E1.copy()
@@ -68,11 +84,12 @@ def simplify_knot(knot, iterations: int = 5, type_3_limit: int = 1000):
 #Simplifies the table entries as much as possible (adjust parameters for less/more simplification)
 #Note that this doesn't reverify anything (the knots should still be the same knot)
 def simplify_table(start: int, end: int):
-    data = pd.read_csv(out_file_path)
+    data = pd.read_csv(out_file_path,dtype=data_types)
 
     caffeine.on()
     for i in range(start,end+1):
         print(f"Simplifying knot {i}")
+        #print(data.iloc[i-1])
         PD_code = ast.literal_eval(data.at[i-1,"knot_PD_code"])
         K=snappy.Link(PD_code)
         K=simplify_knot(K)
@@ -136,7 +153,7 @@ def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, do
 
 #This code reruns and overrides whatever data is at entry id_num
 def rerun(id_num: int, n_friend_index: int, n: int, result_index: int = 0, double_check: bool = False):
-    data_out = pd.read_csv(out_file_path)
+    data_out = pd.read_csv(out_file_path,dtype=data_types)
     data_in = pd.read_csv(in_file_path)
 
     #Sometimes SageMath typecasts integers as its own special class of Ring Integers, so this code accounts for that
@@ -178,7 +195,7 @@ def rerun(id_num: int, n_friend_index: int, n: int, result_index: int = 0, doubl
 
 #Reruns and overrides the data at each row which has "False" under verification
 def rerun_all_unverified(double_check=False):
-    data_out = pd.read_csv(out_file_path)
+    data_out = pd.read_csv(out_file_path,dtype=data_types)
     unverified = data_out.loc[data_out["verification"]==False]
     #print(unverified)
     for i in range(len(unverified)):
@@ -192,7 +209,7 @@ def rerun_all_unverified(double_check=False):
 
 #Searches for n-friends of the knots with index in [start,end]
 def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=False):
-    data_out = pd.read_csv(out_file_path)
+    data_out = pd.read_csv(out_file_path,dtype=data_types)
     data_in = pd.read_csv(in_file_path)
 
     #Turns on caffeine to suppress macOS sleep functions
