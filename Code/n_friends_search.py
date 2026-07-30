@@ -83,7 +83,7 @@ def simplify_knot(knot, iterations: int = 5, type_3_limit: int = 1000):
 
 #Simplifies the table entries as much as possible (adjust parameters for less/more simplification)
 #Note that this doesn't reverify anything (the knots should still be the same knot)
-def simplify_table(start: int, end: int):
+def simplify_table(start: int, end: int,iterations: int = 5, type_3_limit: int = 1000):
     data = pd.read_csv(out_file_path,dtype=data_types)
 
     caffeine.on()
@@ -92,11 +92,26 @@ def simplify_table(start: int, end: int):
         #print(data.iloc[i-1])
         PD_code = ast.literal_eval(data.at[i-1,"knot_PD_code"])
         K=snappy.Link(PD_code)
-        K=simplify_knot(K)
+        K=simplify_knot(K, iterations, type_3_limit)
         data.at[i-1,"knot_PD_code"]=str(K.PD_code())
         data.at[i-1,"num_crossings"]=int(len(K.crossings))
         data.to_csv(out_file_path, index=False)
+    caffeine.off()
 
+def simplify_specified_knots(indices: list, iterations: int = 5, type_3_limit: int = 1000):
+    data = pd.read_csv(out_file_path,dtype=data_types)
+
+    caffeine.on()
+    for i in indices:
+        i = int(i)
+        print(f"Simplifying knot {i}")
+        #print(data.iloc[i-1])
+        PD_code = ast.literal_eval(data.at[i-1,"knot_PD_code"])
+        K=snappy.Link(PD_code)
+        K=simplify_knot(K, iterations, type_3_limit)
+        data.at[i-1,"knot_PD_code"]=str(K.PD_code())
+        data.at[i-1,"num_crossings"]=int(len(K.crossings))
+        data.to_csv(out_file_path, index=False)
     caffeine.off()
     
 #Searchs for n-friends of knot and returns all the relevant information about each found n-friend

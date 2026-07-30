@@ -18,6 +18,7 @@ import pandas as pd
 import caffeine
 from tqdm import tqdm
 import math
+import time
 
 
 #Change these file paths to match your own computer
@@ -207,8 +208,17 @@ def write_s_invariants(id_num: int, max_crossings: int = 45):
         return
 
     print(f"Finding s-invariants for knot {id_num}")
+
+    start_time = time.perf_counter()
     results = calculate_s_invariants(pd_code=pd_code,primes=(0,2,3))
     print(results)
+
+    elapsed = time.perf_counter() - start_time
+
+    hours, remainder = divmod(elapsed, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    print(f"Runtime: {int(hours)}h {int(minutes)}m {seconds:.2f}s")
+    
     row["s"]=str(results[0])
     row["s_2"]=str(results[2])
     row["s_3"]=str(results[3])
@@ -224,7 +234,9 @@ def write_s_invariants(id_num: int, max_crossings: int = 45):
     data.to_csv(out_file_path,index=False)
     
 def compute_specified_knots(indices: list[int]):
+    caffeine.on()
     for i in indices:
         write_s_invariants(i)
+    caffeine.off()
 
 
