@@ -44,6 +44,7 @@ data_types = {
     "obstructs": str,
     "n_friend_name": str,
     "n_friend_index": int,
+    "slice": int,
     "knot_PD_code": str,
     "n_friend_PD_code": str
     }
@@ -194,7 +195,7 @@ def calculate_s_invariants(
         )
     return {prime: results[prime] for prime in characteristics}
 
-def write_s_invariants(id_num: int, max_crossings: int = 45):
+def write_s_invariants(id_num: int, max_crossings: int = 45, timeout: float = 3600.0):
     data = pd.read_csv(out_file_path,dtype=data_types)
     row = data.iloc[int(id_num) - 1]
 
@@ -210,7 +211,15 @@ def write_s_invariants(id_num: int, max_crossings: int = 45):
     print(f"Finding s-invariants for knot {id_num}")
 
     start_time = time.perf_counter()
-    results = calculate_s_invariants(pd_code=pd_code,primes=(0,2,3))
+
+    results = None
+
+    try:
+        results = calculate_s_invariants(pd_code=pd_code,primes=(0,2,3), timeout=timeout)
+    except KnotJobTimeoutError:
+        print("Exceeded set timeout.")
+        return
+    
     print(results)
 
     elapsed = time.perf_counter() - start_time
@@ -233,10 +242,10 @@ def write_s_invariants(id_num: int, max_crossings: int = 45):
     data.iloc[int(id_num)-1]=row
     data.to_csv(out_file_path,index=False)
     
-def compute_specified_knots(indices: list[int]):
+def compute_specified_knots(indices: list[int], max_crossings: int = 45, timeout: float = 3600.0):
     caffeine.on()
     for i in indices:
-        write_s_invariants(i)
+        write_s_invariants(i,max_crossings,timeout)
     caffeine.off()
 
 

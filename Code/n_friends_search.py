@@ -115,7 +115,7 @@ def simplify_specified_knots(indices: list, iterations: int = 5, type_3_limit: i
     caffeine.off()
     
 #Searchs for n-friends of knot and returns all the relevant information about each found n-friend
-def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check=False):
+def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, knot_sliceness,double_check=False):
     ans = find_common_n_surgery_via_words(knot_ex,n)
     if not ans:
         ans = []
@@ -162,6 +162,7 @@ def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, do
             "obstructs": "",
             "n_friend_name":knot_name,
             "n_friend_index": i,
+            "slice": knot_sliceness,
             "knot_PD_code":str(friend_PD_code),
             "n_friend_PD_code":str(knot_PD_code)})
     return result
@@ -181,6 +182,7 @@ def rerun(id_num: int, n_friend_index: int, n: int, result_index: int = 0, doubl
     knot_name = data_in.at[i-1,"name"]
     knot_PD_code = ast.literal_eval(data_in.at[i-1,"PD_codes"])
     knot_volume = data_in.at[i-1,"volume"]
+    knot_sliceness = data_in.at[i-1,"slice"]
     knot = snappy.Link(knot_PD_code)
     knot_ex = knot.exterior()
     
@@ -197,7 +199,7 @@ def rerun(id_num: int, n_friend_index: int, n: int, result_index: int = 0, doubl
         print("Knot is not hyperbolic")
         return
     print(f"Rerunning knot {i} with n={n} at ID_num={id_num}: " + str(knot_name))
-    result = search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check)
+    result = search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, knot_sliceness,double_check)
     print()
 
     #Makes sure the result has the correct id_num (it can be off sometimes)
@@ -253,6 +255,8 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
         knot_volume = data_in.at[i-1,"volume"]
         knot = snappy.Link(knot_PD_code)
         knot_ex = knot.exterior()
+
+        knot_sliceness = data_in.at[i-1,"slice"]
         
         if knot_volume < 0:
             print("Knot is not hyperbolic")
@@ -261,7 +265,7 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
             print(f"Checking knot {i} with n={n}: " + str(knot_name))
             
             result = []
-            result = search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, double_check=False)
+            result = search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, knot_sliceness, double_check=False)
             new_data = new_data + result
             id_num += len(result)
             print()
@@ -271,8 +275,17 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
         out = pd.concat([data_out,new_rows], ignore_index=True)
         out.to_csv(out_file_path, index=False)
     caffeine.off()
-                
-            
+
+#Can be reworked to add any sort of data that you might want to transfer
+def add_sliceness():
+    data_out = pd.read_csv(out_file_path,dtype=data_types)
+    data_in = pd.read_csv(in_file_path)
+
+    for i in range(len(data_out)):
+        index = int(data_out.at[i,"n_friend_index"])
+        sliceness = data_in.at[index-1,"slice"]
+        data_out.at[i,"slice"]=sliceness
+    data_out.to_csv(out_file_path, index=False)
         
     
           
