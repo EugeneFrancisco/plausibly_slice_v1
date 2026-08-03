@@ -72,11 +72,24 @@ def check_mirrors(L1,L2,n):
             E2=L2.mirror().exterior()
         print("Check #" + str(i) + ": " + str(check_common_surgery(E1,E2,n)))
 
-#Tries to simplify a knot as much as possible
+#Tries to simplify a knot with so many iterations
 def simplify_knot(knot, iterations: int = 5, type_3_limit: int = 1000):
     K = knot.copy()
     for i in tqdm(range(iterations), desc="Attempting to simplify knot"):
-        K.simplify('global',type_3_limit)
+        reduction = K.simplify('global',type_3_limit)
+    crossings_reduction = len(knot.crossings)-len(K.crossings)
+    print("Reduced crossings by: " + str(crossings_reduction))
+    return K
+
+#Keeps iterating until the knot can no longer be simplified
+def super_simplify(knot, iterations: int = 5, type_3_limit: int = 5000):
+    K= knot.copy()
+    for i in range(iterations):
+        reduced = True
+        while reduced:
+            reduced = False
+            reduced = K.simplify('global',type_3_limit)
+
     crossings_reduction = len(knot.crossings)-len(K.crossings)
     print("Reduced crossings by: " + str(crossings_reduction))
     return K
@@ -109,6 +122,22 @@ def simplify_specified_knots(indices: list, iterations: int = 5, type_3_limit: i
         PD_code = ast.literal_eval(data.at[i-1,"knot_PD_code"])
         K=snappy.Link(PD_code)
         K=simplify_knot(K, iterations, type_3_limit)
+        data.at[i-1,"knot_PD_code"]=str(K.PD_code())
+        data.at[i-1,"num_crossings"]=int(len(K.crossings))
+        data.to_csv(out_file_path, index=False)
+    caffeine.off()
+
+def super_simplify_specified(indices: list, iterations: int= 5, type_3_limit: int = 5000):
+    data = pd.read_csv(out_file_path,dtype=data_types)
+
+    caffeine.on()
+    for i in indices:
+        i = int(i)
+        print(f"Simplifying knot {i}")
+        #print(data.iloc[i-1])
+        PD_code = ast.literal_eval(data.at[i-1,"knot_PD_code"])
+        K=snappy.Link(PD_code)
+        K=super_simplify(K, iterations, type_3_limit)
         data.at[i-1,"knot_PD_code"]=str(K.PD_code())
         data.at[i-1,"num_crossings"]=int(len(K.crossings))
         data.to_csv(out_file_path, index=False)
