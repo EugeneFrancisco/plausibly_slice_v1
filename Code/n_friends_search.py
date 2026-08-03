@@ -127,6 +127,21 @@ def simplify_specified_knots(indices: list, iterations: int = 5, type_3_limit: i
         data.to_csv(out_file_path, index=False)
     caffeine.off()
 
+def super_simplify_table(start: int, end: int,iterations: int = 5, type_3_limit: int = 1000):
+    data = pd.read_csv(out_file_path,dtype=data_types)
+
+    caffeine.on()
+    for i in range(start,end+1):
+        print(f"Simplifying knot {i}")
+        #print(data.iloc[i-1])
+        PD_code = ast.literal_eval(data.at[i-1,"knot_PD_code"])
+        K=snappy.Link(PD_code)
+        K=super_simplify(K, iterations, type_3_limit)
+        data.at[i-1,"knot_PD_code"]=str(K.PD_code())
+        data.at[i-1,"num_crossings"]=int(len(K.crossings))
+        data.to_csv(out_file_path, index=False)
+    caffeine.off()
+
 def super_simplify_specified(indices: list, iterations: int= 5, type_3_limit: int = 5000):
     data = pd.read_csv(out_file_path,dtype=data_types)
 
@@ -254,7 +269,7 @@ def rerun_all_unverified(double_check=False):
         rerun(id_num, n_friend_index,n,double_check=double_check)
 
 #Searches for n-friends of the knots with index in [start,end]
-def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=False):
+def n_friends_search(start: int = 1,end: int = 1,min_n: int = 1, max_n: int = 5, double_check=False):
     data_out = pd.read_csv(out_file_path,dtype=data_types)
     data_in = pd.read_csv(in_file_path)
 
@@ -290,7 +305,7 @@ def n_friends_search(start: int = 1,end: int = 1,max_n: int = 1, double_check=Fa
         if knot_volume < 0:
             print("Knot is not hyperbolic")
             continue
-        for n in range(1, max_n+1):
+        for n in range(min_n, max_n+1):
             print(f"Checking knot {i} with n={n}: " + str(knot_name))
             
             result = []
