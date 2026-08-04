@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 
 import snappy
+from tqdm import tqdm
 
 from find_n_friends import _closed_isometric, n_surgery_slope
 
@@ -14,7 +15,10 @@ from find_n_friends import _closed_isometric, n_surgery_slope
 HERE = Path(__file__).resolve().parent
 DEFAULT_CSV = HERE / "results" / "n_friends.csv"
 REQUIRED_FIELDS = {
+    "num_crossings",
+    "volume",
     "n",
+    "verification",
     "n_friend_name",
     "n_friend_index",
     "knot_PD_code",
@@ -50,7 +54,9 @@ def write_csv(path, preamble, fieldnames, rows):
     ) as temporary_file:
         temporary_path = Path(temporary_file.name)
         temporary_file.writelines(preamble)
-        writer = csv.DictWriter(temporary_file, fieldnames=fieldnames)
+        writer = csv.DictWriter(
+            temporary_file, fieldnames=fieldnames, lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(rows)
     temporary_path.chmod(path.stat().st_mode)
@@ -63,8 +69,10 @@ def verify_n_friends(csv_path):
     preamble, fieldnames, rows = read_csv(path)
     targets = {}
     corrections = 0
+    changed = False
 
-    for row_number, row in enumerate(rows, start=1):
+    progress = tqdm(rows, desc="Verifying n-friends", unit="friend")
+    for row_number, row in enumerate(progress, start=1):
         name = row["n_friend_name"]
         n = int(row["n"])
         if n < 0:
@@ -80,7 +88,9 @@ def verify_n_friends(csv_path):
 
         friend = snappy.Link(ast.literal_eval(row["knot_PD_code"]))
         if _closed_isometric(target, n_surgery(friend.exterior(), n)):
-            print(f"Verified row {row_number}: {name}, n={n}.")
+            if row["verification"] != "True":
+                row["verification"] = "True"
+                changed = True
             continue
 
         mirrored_friend = friend.mirror()
@@ -92,7 +102,11 @@ def verify_n_friends(csv_path):
             row["volume"] = str(float(mirrored_friend.exterior().volume()))
             row["verification"] = "True"
             corrections += 1
-            print(f"Corrected mirror in row {row_number}: {name}, n={n}.")
+            changed = True
+            progress.set_postfix(corrected=corrections)
+            tqdm.write(
+                f"Corrected mirror in row {row_number}: {name}, n={n}."
+            )
             continue
 
         raise ValueError(
@@ -100,7 +114,7 @@ def verify_n_friends(csv_path):
             "even after mirroring its PD code."
         )
 
-    if corrections:
+    if changed:
         write_csv(path, preamble, fieldnames, rows)
     print(
         f"Verified {len(rows)} n-friends and corrected "
