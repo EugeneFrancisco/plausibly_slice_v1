@@ -4,9 +4,17 @@ A generalization of "rbg.py" by Dunfield and Gong to apply to n-RBG links
 (following Qin's paper).
 """
 
+import sys
+
 import snappy
+from snappy.exceptions import InsufficientPrecisionError
+from snappy.geometric_structure.geodesic.check_away_from_core_curve import (
+    ObjectCloseToCoreCurve,
+)
 from snappy.snap.nsagetools import MapToFreeAbelianization
-from sage.all import vector
+from sage.all import matrix, vector
+
+Slope = tuple[int, int]
 
 #Set the recursion limit higher in cases where the program fails to find a proper geodesic.
 sys.setrecursionlimit(75000)
@@ -212,6 +220,18 @@ def isometry_preserving_curves(M0, mu0, M1, mu1):
                 break
         if match:
             return iso
+
+
+def isometries_with_retries(M0, M1, tries=10):
+    """Return isometries, retrying when SnapPy is indecisive."""
+    M0, M1 = M0.copy(), M1.copy()
+    for _ in range(tries):
+        try:
+            return M0.is_isometric_to(M1, return_isometries=True)
+        except RuntimeError:
+            M0.randomize()
+            M1.randomize()
+    return []
 
 
 class NRedBlueGreenLink:
@@ -420,7 +440,14 @@ class NBlueGreenExterior:
             return
 
         #Searches through possible red meridians among the first cusp's short slopes
-        poss_red_merid = E.short_slopes(12, first_cusps=[0])[0]
+        try:
+            poss_red_merid = E.short_slopes(
+                12, first_cusps=[0], bits_prec=100
+            )[0]
+        except (InsufficientPrecisionError, RuntimeError):
+            poss_red_merid = E.short_slopes(
+                12, first_cusps=[0], bits_prec=200
+            )[0]
         for merid in poss_red_merid:
             E3 = E.copy()
             framing = [merid, self.blue_merid, self.green_merid]
@@ -543,7 +570,7 @@ class NBlueGreenExterior:
             - Copies this filled manifold.
             - Removes that cusp's filling using (0, 0).
             - Leaves the other two components meridionally filled.
-            - Obtains a one-cusped knot exterior in \(S^3\).
+            - Obtains a one-cusped knot exterior in S^3.
             - Computes its homological longitude.
         """
         longitudes = []
@@ -621,18 +648,38 @@ class NBlueGreenExterior:
 def blue_green_exteriors(n,blue_exterior, blue_merid,
                              green_exterior, green_merid,
                              radius=4):
+    blue_exterior = blue_exterior.copy()
     blue_long = blue_exterior.homological_longitude()
     green_long = green_exterior.homological_longitude()
     green_vol = green_exterior.volume()
     
     #Provides a list of geodesics in the blue exterior (E_K) with which to cut out
-    curves = blue_exterior.length_spectrum(radius, include_words=True, grouped=False)
+    curves = None
+    for _ in range(30):
+        if blue_exterior.solution_type(enum=True) != 1:
+            blue_exterior.randomize()
+            continue
+        try:
+            curves = blue_exterior.length_spectrum(
+                radius, include_words=True, grouped=False
+            )
+            break
+        except RuntimeError:
+            blue_exterior.randomize()
+    if curves is None:
+        print("Could not compute the blue exterior's length spectrum")
+        return
+
     for curve in curves:
         print(f'Trying {curve}')
 
         #Drills the geodesic from the blue exterior to give a 2-cusped manifold (denoted X in the paper).
         #Adjust bit precision if a precision error occurs
-        E = blue_exterior.drill_word(curve.word,bits_prec=100)
+        try:
+            E = blue_exterior.drill_word(curve.word, bits_prec=100)
+        except (ObjectCloseToCoreCurve, RuntimeError):
+            print("Could not drill this geodesic")
+            continue
         E1 = E.copy()
 
         #Performs n-surgery on the first cusp (0th) of the drilled exterior X
@@ -653,7 +700,7 @@ def blue_green_exteriors(n,blue_exterior, blue_merid,
             
             #Checks if the surgered exterior is actually homeomorphic to E_K' (a true result is rigorous, but a false result may not be)
             #Also returns a list of all found isometries
-            isos = green_exterior.is_isometric_to(E1, True)
+            isos = isometries_with_retries(green_exterior, E1)
             '''
             #For debugging purposes
             print("Initial check passed")
@@ -668,16 +715,20 @@ def blue_green_exteriors(n,blue_exterior, blue_merid,
                 E = snappy.Manifold(E)
 
                 #Defines an NBlueGreenExterior based on X
-                BGE = NBlueGreenExterior(
-                    E,
-                    n,
-                    blue_merid,
-                    blue_long,
-                    new_green_merid,
-                    new_green_long,
-                    blue_exterior,
-                    green_exterior
-                )
+                try:
+                    BGE = NBlueGreenExterior(
+                        E,
+                        n,
+                        blue_merid,
+                        blue_long,
+                        new_green_merid,
+                        new_green_long,
+                        blue_exterior,
+                        green_exterior
+                    )
+                except ValueError:
+                    print("Candidate failed the blue-green exterior checks")
+                    continue
                 print(f'FOUND: Volume {BGE.manifold.volume()}')
 
                 #Searches through potential RBG exteriors from drilling the BGE

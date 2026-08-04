@@ -14,10 +14,20 @@ step towards this goal, to find n-friends of various knots with unknown slicenes
 The knots on which we have looked for friends and their corresponding friends can be found in
 results/n_friends.csv.
 
-The next part of this project is to compute s-invariants of the friends that have been found in
-n_friends.csv. Ultimately, these invariants will be used to disqualify some of these knots from
-being slice and an RBG link should be able to transfer slice disqualification to the other friend.
-As such, the next goal of this project will be to get s-invariant calculation code working locally.
+The next part of this project was to compute s-invariants of the friends that have been found in
+n_friends.csv. This part is not fully done but already many of the knots in n_friends.csv have
+had s-invariants calculated and those invariants are place din n_friends.csv.
+
+Now, we want to use those pairs of friends where one friend has s-invariant that disqualifies
+sliceness. In n_friends.csv, these are the friends that have s-invariant >= 2 of which
+there should currently be 3. The next goal of this project is to search for RBG links over
+those friends. Write a short script in a new function within search.py which does the following.
+The script should loop through the knots in n_friends.csv and look for those knots who have
+slice-disqualifying s-invariants (there should be 3 of these right now). On these pairs, try to 
+find super-special n-RBG links. If a super-special n-RBG link can be found, then we can conclude the
+slice status of the other friend in the pair, which is great! Store this slice status by printing
+a message to the screen saying which knot was found to not be slice (for example, you could print
+"K15n11671 was found to not be slice" or something along these lines).
 
 More details about this can be found in dunfield_and_gong_abridged.pdf and Qin_et_al.pdf.
 

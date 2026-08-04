@@ -13,8 +13,13 @@ from find_n_friends import _closed_isometric, n_surgery_slope
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_CSV = HERE / "results" / "n_friends.csv"
-KNOT_DATA = HERE / "data" / "plausibly_unknown.csv"
-REQUIRED_FIELDS = {"name", "n", "PD_code"}
+REQUIRED_FIELDS = {
+    "n",
+    "n_friend_name",
+    "n_friend_index",
+    "knot_PD_code",
+    "n_friend_PD_code",
+}
 
 
 def read_csv(path):
@@ -26,7 +31,7 @@ def read_csv(path):
             break
     else:
         raise ValueError(
-            f"{path} must have the columns name, n, and PD_code."
+            f"{path} does not use the n-friend CSV schema."
         )
 
     reader = csv.DictReader(lines[header_index:])
@@ -37,26 +42,6 @@ def n_surgery(exterior, n):
     filled = snappy.ManifoldHP(exterior)
     filled.dehn_fill(n_surgery_slope(filled, n))
     return filled
-
-
-def load_base_pd_codes():
-    with KNOT_DATA.open(newline="") as file:
-        return {
-            row["name"]: ast.literal_eval(row["PD_codes"])
-            for row in csv.DictReader(file)
-        }
-
-
-def base_knot_exterior(name, pd_codes):
-    try:
-        return snappy.Manifold(name)
-    except (OSError, ValueError):
-        if name not in pd_codes:
-            raise ValueError(
-                f"Could not load {name} by name or find its PD code in "
-                f"{KNOT_DATA}."
-            )
-        return snappy.Link(pd_codes[name]).exterior()
 
 
 def write_csv(path, preamble, fieldnames, rows):
@@ -77,24 +62,23 @@ def verify_n_friends(csv_path):
     path = Path(csv_path)
     preamble, fieldnames, rows = read_csv(path)
     targets = {}
-    base_exteriors = {}
-    base_pd_codes = load_base_pd_codes()
     corrections = 0
 
     for row_number, row in enumerate(rows, start=1):
-        name = row["name"]
+        name = row["n_friend_name"]
         n = int(row["n"])
         if n < 0:
             raise ValueError(f"Row {row_number} has a negative n: {n}.")
 
-        key = (name, n)
-        if name not in base_exteriors:
-            base_exteriors[name] = base_knot_exterior(name, base_pd_codes)
+        key = (row["n_friend_index"], n)
         if key not in targets:
-            targets[key] = n_surgery(base_exteriors[name], n)
+            original = snappy.Link(
+                ast.literal_eval(row["n_friend_PD_code"])
+            )
+            targets[key] = n_surgery(original.exterior(), n)
         target = targets[key]
 
-        friend = snappy.Link(ast.literal_eval(row["PD_code"]))
+        friend = snappy.Link(ast.literal_eval(row["knot_PD_code"]))
         if _closed_isometric(target, n_surgery(friend.exterior(), n)):
             print(f"Verified row {row_number}: {name}, n={n}.")
             continue
@@ -103,9 +87,10 @@ def verify_n_friends(csv_path):
         if _closed_isometric(
             target, n_surgery(mirrored_friend.exterior(), n)
         ):
-            row["PD_code"] = str(
-                mirrored_friend.PD_code(min_strand_index=1)
-            )
+            row["knot_PD_code"] = str(mirrored_friend.PD_code())
+            row["num_crossings"] = str(len(mirrored_friend.crossings))
+            row["volume"] = str(float(mirrored_friend.exterior().volume()))
+            row["verification"] = "True"
             corrections += 1
             print(f"Corrected mirror in row {row_number}: {name}, n={n}.")
             continue

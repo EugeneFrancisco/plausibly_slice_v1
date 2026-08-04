@@ -235,7 +235,7 @@ def _write_csv(
 
 
 def _s_invariant_column(prime: int) -> str:
-    return f"s_invariant_mod_{prime}"
+    return f"s_{prime}"
 
 
 def _is_missing(value: str | None) -> bool:
@@ -260,8 +260,13 @@ def update_csv_s_invariants(
 
     characteristics = _validate_primes(primes)
     preamble, fieldnames, rows = _read_csv(path)
-    if "PD_code" not in fieldnames:
-        raise ValueError("The CSV must contain a PD_code column.")
+    required_fields = {"n_friend_name", "knot_PD_code"}
+    missing_fields = required_fields.difference(fieldnames)
+    if missing_fields:
+        raise ValueError(
+            "The CSV does not use the n-friend schema; "
+            f"missing {sorted(missing_fields)}."
+        )
 
     columns = {
         prime: _s_invariant_column(prime) for prime in characteristics
@@ -291,11 +296,13 @@ def update_csv_s_invariants(
             continue
 
         try:
-            pd_code = ast.literal_eval(row["PD_code"])
+            pd_code = ast.literal_eval(row["knot_PD_code"])
         except (SyntaxError, ValueError) as error:
-            raise ValueError(f"Invalid PD_code in CSV row {index}.") from error
+            raise ValueError(
+                f"Invalid knot_PD_code in CSV row {index}."
+            ) from error
 
-        knot_name = row.get("name") or "knot"
+        knot_name = row.get("n_friend_name") or "knot"
         label = f"{knot_name}_row_{index}"
         for prime in missing:
             print(
@@ -332,7 +339,10 @@ def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Add missing Rasmussen s-invariants to a friends CSV."
     )
-    parser.add_argument("csv_path", help="Path to a CSV containing PD_code.")
+    parser.add_argument(
+        "csv_path",
+        help="Path to an n-friends CSV containing knot_PD_code.",
+    )
     parser.add_argument(
         "--primes",
         nargs="+",
