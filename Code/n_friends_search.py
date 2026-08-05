@@ -336,6 +336,16 @@ def add_sliceness():
         sliceness = data_in.at[index-1,"slice"]
         data_out.at[i,"slice"]=sliceness
     data_out.to_csv(out_file_path, index=False)
+
+def add_pd_code():
+    data_out = pd.read_csv(out_file_path,dtype=data_types)
+    data_in = pd.read_csv(in_file_path)
+
+    for i in range(len(data_out)):
+        index = int(data_out.at[i,"n_friend_index"])
+        pd_code = str(data_in.at[index-1,"PD_codes"])
+        data_out.at[i,"n_friend_PD_code"]=pd_code
+    data_out.to_csv(out_file_path, index=False)
         
     
           
