@@ -90,11 +90,11 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100):
 
     obstructs = False
     #Checks Tau obstruction
-    if (2*tau > n-Math.sqrt(n)):
+    if (2*tau > n-math.sqrt(n)):
         obstructs = True
 
     #Checks Nu obstruction (double check that this is correct)
-    if (2*nu > n-Math.sqrt(n)):
+    if (2*nu > n-math.sqrt(n)):
         obstructs = True
     
     if obstructs:
