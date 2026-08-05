@@ -23,7 +23,9 @@ data_types = {
     "s": str,
     "s_2": str,
     "s_3": str,
-    "obstructs": str,
+    "nu": str,
+    "tau": str,
+    "obstructs": bool,
     "n_friend_name": str,
     "n_friend_index": int,
     "knot_PD_code": str,
@@ -127,15 +129,17 @@ def simplify_specified_knots(indices: list, iterations: int = 5, type_3_limit: i
         data.to_csv(out_file_path, index=False)
     caffeine.off()
 
-def super_simplify_table(start: int, end: int,iterations: int = 5, type_3_limit: int = 1000):
+def super_simplify_table(start: int, end: int,iterations: int = 5, type_3_limit: int = 1000, max_crossings: int = 1000):
     data = pd.read_csv(out_file_path,dtype=data_types)
 
     caffeine.on()
     for i in range(start,end+1):
-        print(f"Simplifying knot {i}")
         #print(data.iloc[i-1])
         PD_code = ast.literal_eval(data.at[i-1,"knot_PD_code"])
         K=snappy.Link(PD_code)
+        if (len(K.crossings) > max_crossings):
+            continue
+        print(f"Simplifying knot {i}")
         K=super_simplify(K, iterations, type_3_limit)
         data.at[i-1,"knot_PD_code"]=str(K.PD_code())
         data.at[i-1,"num_crossings"]=int(len(K.crossings))
@@ -203,7 +207,9 @@ def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, kn
             "s": "",
             "s_2": "",
             "s_3": "",
-            "obstructs": "",
+            "nu":"",
+            "tau": "",
+            "obstructs": False,
             "n_friend_name":knot_name,
             "n_friend_index": i,
             "slice": knot_sliceness,

@@ -41,7 +41,9 @@ data_types = {
     "s": str,
     "s_2": str,
     "s_3": str,
-    "obstructs": str,
+    "nu": str,
+    "tau": str,
+    "obstructs": bool,
     "n_friend_name": str,
     "n_friend_index": int,
     "slice": int,
@@ -195,7 +197,7 @@ def calculate_s_invariants(
         )
     return {prime: results[prime] for prime in characteristics}
 
-def write_s_invariants(id_num: int, max_crossings: int = 100, timeout: float | None=None):
+def compute_s_invariants(id_num: int, max_crossings: int = 100, timeout: float | None=None):
     data = pd.read_csv(out_file_path,dtype=data_types)
     row = data.iloc[int(id_num) - 1]
 
@@ -241,12 +243,13 @@ def write_s_invariants(id_num: int, max_crossings: int = 100, timeout: float | N
         if (s > n-math.sqrt(n)):
             obstructs = True
 
-    row["obstructs"]=str(obstructs)
+    if obstructs:
+        row["obstructs"]=obstructs
 
     data.iloc[int(id_num)-1]=row
     data.to_csv(out_file_path,index=False)
     
-def compute_specified_knots(indices: list[int], max_crossings: int = 100, timeout: float | None = None):
+def compute_s_invariants_specified(indices: list[int], max_crossings: int = 100, timeout: float | None = None):
     caffeine.on()
     for i in indices:
         write_s_invariants(i,max_crossings,timeout)
