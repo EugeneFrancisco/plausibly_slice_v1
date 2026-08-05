@@ -240,7 +240,11 @@ def compute_s_invariants(id_num: int, max_crossings: int = 100, timeout: float |
 
     obstructs = False
     for s in invariants:
-        if (s > n-math.sqrt(n)):
+        m = n
+        if (n<0):
+            m = -n
+            s = -s
+        if (s > m-math.sqrt(m)):
             obstructs = True
 
     if obstructs:
@@ -252,7 +256,7 @@ def compute_s_invariants(id_num: int, max_crossings: int = 100, timeout: float |
 def compute_s_invariants_specified(indices: list[int], max_crossings: int = 100, timeout: float | None = None):
     caffeine.on()
     for i in indices:
-        write_s_invariants(i,max_crossings,timeout)
+        compute_s_invariants(i,max_crossings,timeout)
     caffeine.off()
 
 

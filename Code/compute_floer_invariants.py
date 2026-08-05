@@ -43,7 +43,7 @@ data_types = {
     "n_friend_PD_code": str
     }
 
-def compute_floer_homology(id_num: int, max_crossings: int = 100):
+def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: bool = False):
     data = pd.read_csv(out_file_path,dtype=data_types)
     row = data.iloc[int(id_num) - 1]
 
@@ -51,11 +51,15 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100):
     num_crossings = int(row["num_crossings"])
     pd_code = ast.literal_eval(row["knot_PD_code"])
     n = int(row["n"])
+    check = float(row["nu"])
+    
+    if not (math.isnan(check) or recompute):
+        return
 
     K=snappy.Link(pd_code)
 
     if num_crossings > max_crossings:
-        print("Too many crossings")
+        #print("Too many crossings")
         return
 
     #Computes Knot Floer Homology
@@ -87,6 +91,7 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100):
     if (n < 0):
         nu = -nu
         tau = -tau
+        n = -n
 
     obstructs = False
     #Checks Tau obstruction
@@ -107,5 +112,11 @@ def compute_floer_invariants_specified(indices: list[int], max_crossings: int = 
     caffeine.on()
     for i in indices:
         compute_floer_homology(i,max_crossings)
+    caffeine.off()
+
+def compute_floer_invariants_table(start: int, end: int, max_crossings: int = 100, recompute: bool =False):
+    caffeine.on()
+    for i in range(start,end + 1):
+        compute_floer_homology(i,max_crossings,recompute)
     caffeine.off()
 
