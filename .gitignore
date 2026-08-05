@@ -2,3 +2,6 @@ snappy_census/
 .DS_Store
 __pycache__/
 *.pyc
+AGENTS.md
+Data/plausibly_hyperbolic.csv.bz2
+Data/plausibly_slice.csv.bz2
