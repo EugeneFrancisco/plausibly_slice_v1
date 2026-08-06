@@ -49,6 +49,11 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: boo
 
     #print(row)
     num_crossings = int(row["num_crossings"])
+
+    if num_crossings > max_crossings:
+        #print("Too many crossings")
+        return
+    
     pd_code = ast.literal_eval(row["knot_PD_code"])
     n = int(row["n"])
     check = float(row["nu"])
@@ -57,10 +62,6 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: boo
         return
 
     K=snappy.Link(pd_code)
-
-    if num_crossings > max_crossings:
-        #print("Too many crossings")
-        return
 
     #Computes Knot Floer Homology
     print(f"Finding Knot Floer Homology for knot {id_num}")

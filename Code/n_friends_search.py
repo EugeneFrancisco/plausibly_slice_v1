@@ -60,7 +60,7 @@ def isometric(E1,E2):
                 return A.is_isometric_to(B)
             except:
                 continue
-        print(f"Could not determine if {n}-surgeries are isometric")
+        print("Could not determine if manifolds are isometric")
         return None
 
 #Checks all combinations of mirroring the knots
@@ -185,6 +185,10 @@ def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, kn
         friend_ex=friend_knot.exterior()
 
         verify = True
+
+        if isometric(knot_ex, friend_ex):
+            print(f"Friend {j} is isotopic to the original")
+            continue
                 
         if not check_common_surgery(knot_ex,friend_ex,n):
             print(f"Friend {j} failed surgery verification check")
