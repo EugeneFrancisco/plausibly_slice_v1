@@ -48,6 +48,7 @@ data_types = {
     "n_friend_PD_code": str
     }
 
+#Computes the floer homology at the specified index (if n<0 it computes the invariants of the mirror)
 def compute_floer_homology(
     id_num: int,
     max_crossings: int = 100,
@@ -75,6 +76,11 @@ def compute_floer_homology(
 
     K=snappy.Link(pd_code)
 
+    #Mirrors the knot K to account for (-n)-surgery
+    #Note that s(mK)=-s(K) and tau(mK)=-tau(K) but nu doesn't satisfy a similar equality
+    if (n < 0):
+        K = K.mirror()
+
     #Computes Knot Floer Homology
     print(f"Finding Knot Floer Homology for knot {id_num}")
 
@@ -101,8 +107,6 @@ def compute_floer_homology(
     #This flips the sign of the inequalities we check when n is negative
     #Note: this doesn't change the sign of what's written to the data file
     if (n < 0):
-        nu = -nu
-        tau = -tau
         n = -n
 
     obstructs = False
@@ -119,6 +123,52 @@ def compute_floer_homology(
 
     update_row(id_num, updates, data_path=path)
     return updates
+
+def check_obstruction(data_path=None):
+    path = resolve_data_path(data_path)
+    data = pd.read_csv(path, dtype=data_types)
+    for i in range(len(data)):
+        row = data.iloc[i]
+        nu = float(row["nu"])
+        tau = float(row["tau"])
+        s = float(row["s"])
+        s_2 = float(row["s_2"])
+        s_3 = float(row["s_3"])
+        n = float(row["n"])
+
+        if (n < 0):
+            n = -n
+            s = -s
+            s_2 = -s_2
+            s_3 = -s_3
+
+        obstructs = False
+        #Checks Tau obstruction
+        if not math.isnan(tau):
+            if (2*tau > n-math.sqrt(n)):
+                obstructs = True
+
+        #Checks Nu obstruction (double check that this is correct)
+        if not math.isnan(nu):
+            if (2*nu > n-math.sqrt(n)):
+                obstructs = True
+
+        #Checks s-invariant obstruction
+        if not math.isnan(s):
+            if (s > n-math.sqrt(n)):
+                obstructs = True
+                
+        if not math.isnan(s_2):
+            if (s_2 > n-math.sqrt(n)):
+                obstructs = True
+            
+        if not math.isnan(s_3):
+            if (s_3 > n-math.sqrt(n)):
+                obstructs = True
+            
+            
+        row["obstructs"]=obstructs
+    data.to_csv(path, index=False)
 
 def compute_floer_invariants_specified(indices: list[int], max_crossings: int = 100, data_path=None):
     if caffeine:
