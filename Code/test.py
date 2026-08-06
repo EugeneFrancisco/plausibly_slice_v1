@@ -126,15 +126,16 @@ def search_test():
             continue
         
         # Reframe F as the exterior of K' (meridian = its S^3 slope).
+        print("Drilled manifold slope: " + str(n_surgery_slope(F,n)))
+        print("Found slope: " + str(slope))
+        print("Target slope: "+ str(n_surgery_slope(E,n)))
+        
         F.dehn_fill(slope)
         F.set_peripheral_curves('fillings')
         F.dehn_fill((0, 0))
         if n != 0 and not _n_surgery_recovers(F, n, M):
             continue                          # rational-surgery coincidence
-        N = snappy.ManifoldHP(F)
-        slope = n_surgery_slope(N,n)
-        print("Drilled manifold slope: " + str(slope))
-        print(check_common_surgery(N,M,n))
+        print("Passed isometry check")
 
 
 
