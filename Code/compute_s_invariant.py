@@ -26,8 +26,6 @@ KNOTJOB_JAR = Path("/Users/henrigreamo/Desktop/KnotJob/KnotJob.jar")
 
 out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends(Henri's version).csv"
 
-load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/n_friends_search.py')
-
 _RESULT_PATTERN = re.compile(
     r"S-Invariant mod (\d+)\s*:\s*(-?\d+)", re.IGNORECASE
 )
