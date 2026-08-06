@@ -24,7 +24,7 @@ import time
 #Change these file paths to match your own computer
 KNOTJOB_JAR = Path("/Users/henrigreamo/Desktop/KnotJob/KnotJob.jar")
 
-out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends.csv"
+out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends(Henri's version).csv"
 
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/n_friends_search.py')
 

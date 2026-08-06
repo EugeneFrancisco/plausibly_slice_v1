@@ -21,7 +21,7 @@ import math
 import time
 
 #Change these file paths to match your own computer
-out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends.csv"
+out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends(Henri's version).csv"
 
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/compute_s_invariant.py')
 

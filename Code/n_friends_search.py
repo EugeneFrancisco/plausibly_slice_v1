@@ -11,7 +11,7 @@ from tqdm import tqdm
 #Change these file paths to match your own computer
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/find_n_friends.py')
 
-out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends.csv"
+out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends(Henri's version).csv"
 in_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/plausibly_unknown.csv"
 
 data_types = {
@@ -186,6 +186,7 @@ def search(knot_name, knot_PD_code, knot_volume, knot, knot_ex, n, id_num, i, kn
 
         verify = True
 
+        #Checks that found friend is distinct from the original knot (very rare, but can happen)
         if isometric(knot_ex, friend_ex):
             print(f"Friend {j} is isotopic to the original")
             continue
