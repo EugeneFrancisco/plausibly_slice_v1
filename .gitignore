@@ -5,5 +5,6 @@ __pycache__/
 *.lock
 logs/
 AGENTS.md
+CLAUDE.md
 Data/plausibly_hyperbolic.csv.bz2
 Data/plausibly_slice.csv.bz2
