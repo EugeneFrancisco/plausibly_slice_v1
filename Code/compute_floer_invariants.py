@@ -15,13 +15,20 @@ from collections.abc import Iterable, Sequence
 from pathlib import Path
 
 import pandas as pd
-import caffeine
-from tqdm import tqdm
 import math
 import time
 
-#Change these file paths to match your own computer
-out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends(Henri's version).csv"
+import snappy
+
+from invariant_io import resolve_data_path, update_row, value_is_missing
+
+try:
+    import caffeine
+except ImportError:
+    caffeine = None
+
+# Override this with N_FRIENDS_DATA or the data_path function argument.
+out_file_path = str(resolve_data_path())
 
 data_types = {
     "id_num": int,
@@ -41,9 +48,18 @@ data_types = {
     "n_friend_PD_code": str
     }
 
-def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: bool = False):
-    data = pd.read_csv(out_file_path,dtype=data_types)
-    row = data.iloc[int(id_num) - 1]
+def compute_floer_homology(
+    id_num: int,
+    max_crossings: int = 100,
+    recompute: bool = False,
+    data_path=None,
+):
+    path = resolve_data_path(data_path)
+    data = pd.read_csv(path, dtype=data_types)
+    matches = data.loc[data["id_num"] == int(id_num)]
+    if len(matches) != 1:
+        raise RuntimeError(f"Expected one row with id_num={id_num}, found {len(matches)}.")
+    row = matches.iloc[0]
 
     #print(row)
     num_crossings = int(row["num_crossings"])
@@ -54,9 +70,7 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: boo
     
     pd_code = ast.literal_eval(row["knot_PD_code"])
     n = int(row["n"])
-    check = float(row["nu"])
-    
-    if not (math.isnan(check) or recompute):
+    if not (value_is_missing(row["nu"]) or recompute):
         return
 
     K=snappy.Link(pd_code)
@@ -82,8 +96,7 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: boo
     nu = homology["nu"]
     tau = homology["tau"]
     
-    row["nu"]=str(nu)
-    row["tau"]=str(tau)
+    updates = {"nu": str(nu), "tau": str(tau)}
 
     #This flips the sign of the inequalities we check when n is negative
     #Note: this doesn't change the sign of what's written to the data file
@@ -102,20 +115,23 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: boo
         obstructs = True
     
     if obstructs:
-        row["obstructs"]=obstructs
+        updates["obstructs"] = True
 
-    data.iloc[int(id_num)-1]=row
-    data.to_csv(out_file_path,index=False)
+    update_row(id_num, updates, data_path=path)
+    return updates
 
-def compute_floer_invariants_specified(indices: list[int], max_crossings: int = 100):
-    caffeine.on()
+def compute_floer_invariants_specified(indices: list[int], max_crossings: int = 100, data_path=None):
+    if caffeine:
+        caffeine.on()
     for i in indices:
-        compute_floer_homology(i,max_crossings)
-    caffeine.off()
+        compute_floer_homology(i, max_crossings, data_path=data_path)
+    if caffeine:
+        caffeine.off()
 
-def compute_floer_invariants_table(start: int, end: int, max_crossings: int = 100, recompute: bool =False):
-    caffeine.on()
+def compute_floer_invariants_table(start: int, end: int, max_crossings: int = 100, recompute: bool =False, data_path=None):
+    if caffeine:
+        caffeine.on()
     for i in range(start,end + 1):
-        compute_floer_homology(i,max_crossings,recompute)
-    caffeine.off()
-
+        compute_floer_homology(i, max_crossings, recompute, data_path=data_path)
+    if caffeine:
+        caffeine.off()

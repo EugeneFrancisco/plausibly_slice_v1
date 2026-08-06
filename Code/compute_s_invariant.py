@@ -15,16 +15,22 @@ from collections.abc import Iterable, Sequence
 from pathlib import Path
 
 import pandas as pd
-import caffeine
-from tqdm import tqdm
 import math
 import time
 
+from invariant_io import resolve_data_path, update_row, value_is_missing
 
-#Change these file paths to match your own computer
-KNOTJOB_JAR = Path("/Users/henrigreamo/Desktop/KnotJob/KnotJob.jar")
+try:
+    import caffeine
+except ImportError:
+    caffeine = None
 
-out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends(Henri's version).csv"
+# Override these with KNOTJOB_JAR, KNOTJOB_JAVA, or function arguments.
+KNOTJOB_JAR = Path(
+    os.environ.get("KNOTJOB_JAR", Path.home() / ".cache" / "knotjob" / "KnotJob.jar")
+)
+
+out_file_path = str(resolve_data_path())
 
 _RESULT_PATTERN = re.compile(
     r"S-Invariant mod (\d+)\s*:\s*(-?\d+)", re.IGNORECASE
@@ -195,9 +201,19 @@ def calculate_s_invariants(
         )
     return {prime: results[prime] for prime in characteristics}
 
-def compute_s_invariants(id_num: int, max_crossings: int = 100, timeout: float | None=None):
-    data = pd.read_csv(out_file_path,dtype=data_types)
-    row = data.iloc[int(id_num) - 1]
+def compute_s_invariants(
+    id_num: int,
+    max_crossings: int = 100,
+    timeout: float | None = None,
+    data_path=None,
+    jar_path: str | os.PathLike[str] = KNOTJOB_JAR,
+):
+    path = resolve_data_path(data_path)
+    data = pd.read_csv(path, dtype=data_types)
+    matches = data.loc[data["id_num"] == int(id_num)]
+    if len(matches) != 1:
+        raise RuntimeError(f"Expected one row with id_num={id_num}, found {len(matches)}.")
+    row = matches.iloc[0]
 
     #print(row)
     num_crossings = int(row["num_crossings"])
@@ -205,7 +221,9 @@ def compute_s_invariants(id_num: int, max_crossings: int = 100, timeout: float |
     n = int(row["n"])
 
     if num_crossings > max_crossings:
-        print("Too many crossings")
+        return
+
+    if all(not value_is_missing(row[column]) for column in ("s", "s_2", "s_3")):
         return
 
     print(f"Finding s-invariants for knot {id_num}")
@@ -217,7 +235,12 @@ def compute_s_invariants(id_num: int, max_crossings: int = 100, timeout: float |
         results = None
 
         try:
-            results = calculate_s_invariants(pd_code=pd_code,primes=(p,), timeout=timeout)
+            results = calculate_s_invariants(
+                pd_code=pd_code,
+                primes=(p,),
+                timeout=timeout,
+                jar_path=jar_path,
+            )
         except KnotJobTimeoutError:
             print("Exceeded set timeout.")
             return
@@ -232,9 +255,11 @@ def compute_s_invariants(id_num: int, max_crossings: int = 100, timeout: float |
 
         invariants.append(results[p])
     
-    row["s"]=str(invariants[0])
-    row["s_2"]=str(invariants[1])
-    row["s_3"]=str(invariants[2])
+    updates = {
+        "s": str(invariants[0]),
+        "s_2": str(invariants[1]),
+        "s_3": str(invariants[2]),
+    }
 
     obstructs = False
     for s in invariants:
@@ -246,15 +271,16 @@ def compute_s_invariants(id_num: int, max_crossings: int = 100, timeout: float |
             obstructs = True
 
     if obstructs:
-        row["obstructs"]=obstructs
+        updates["obstructs"] = True
 
-    data.iloc[int(id_num)-1]=row
-    data.to_csv(out_file_path,index=False)
+    update_row(id_num, updates, data_path=path)
+    return updates
     
-def compute_s_invariants_specified(indices: list[int], max_crossings: int = 100, timeout: float | None = None):
-    caffeine.on()
+def compute_s_invariants_specified(indices: list[int], max_crossings: int = 100, timeout: float | None = None, data_path=None, jar_path=KNOTJOB_JAR):
+    if caffeine:
+        caffeine.on()
     for i in indices:
-        compute_s_invariants(i,max_crossings,timeout)
-    caffeine.off()
-
+        compute_s_invariants(i, max_crossings, timeout, data_path, jar_path)
+    if caffeine:
+        caffeine.off()
 
