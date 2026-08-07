@@ -48,6 +48,10 @@ data_types = {
     "n_friend_PD_code": str
     }
 
+# Columns compute_floer_homology fills in. A row counts as done only once all of
+# them are present, so resume runs can tell finished knots from interrupted ones.
+FLOER_COLUMNS = ("nu", "tau")
+
 #Computes the floer homology at the specified index (if n<0 it computes the invariants of the mirror)
 def compute_floer_homology(
     id_num: int,
@@ -68,11 +72,14 @@ def compute_floer_homology(
     if num_crossings > max_crossings:
         #print("Too many crossings")
         return
-    
+
+    #Skips knots whose invariants are already in the table (pass recompute=True to redo them).
+    #Both columns must be present: a row with one of them missing is a half-finished write.
+    if not recompute and not any(value_is_missing(row[column]) for column in FLOER_COLUMNS):
+        return
+
     pd_code = ast.literal_eval(row["knot_PD_code"])
     n = int(row["n"])
-    if not (value_is_missing(row["nu"]) or recompute):
-        return
 
     K=snappy.Link(pd_code)
 

@@ -51,7 +51,15 @@ def update_row(
             )
         row_index = matches[0]
         for column, value in updates.items():
-            data.at[row_index, column] = value
+            try:
+                data.at[row_index, column] = value
+            except (TypeError, ValueError):
+                # The invariant columns come back from read_csv as float64 when
+                # every value so far is numeric, and callers hand us strings.
+                # pandas < 3 upcast such a column silently; pandas >= 3 raises,
+                # which would throw away a calculation that has already run.
+                data[column] = data[column].astype(object)
+                data.at[row_index, column] = value
 
         descriptor, temporary_name = tempfile.mkstemp(
             prefix=path.name + ".", suffix=".tmp", dir=path.parent

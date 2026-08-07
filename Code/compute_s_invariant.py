@@ -55,6 +55,10 @@ data_types = {
     "n_friend_PD_code": str
     }
 
+# Columns compute_s_invariants fills in. A row counts as done only once all of
+# them are present, so resume runs can tell finished knots from interrupted ones.
+S_COLUMNS = ("s", "s_2", "s_3")
+
 class KnotJobTimeoutError(RuntimeError):
     """Raised when KnotJob exceeds its calculation timeout."""
 
@@ -223,7 +227,8 @@ def compute_s_invariants(
     if num_crossings > max_crossings:
         return
 
-    if all(not value_is_missing(row[column]) for column in ("s", "s_2", "s_3")):
+    #Skips knots whose invariants are already in the table.
+    if not any(value_is_missing(row[column]) for column in S_COLUMNS):
         return
 
     print(f"Finding s-invariants for knot {id_num}")
