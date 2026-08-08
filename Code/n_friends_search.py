@@ -321,6 +321,8 @@ def n_friends_search(start: int = 1,end: int = 1,min_n: int = 1, max_n: int = 5,
             print("Knot is not hyperbolic")
             continue
         for n in range(min_n, max_n+1):
+            if (n == 0):
+                continue
             print(f"Checking knot {i} with n={n}: " + str(knot_name))
             
             result = []
