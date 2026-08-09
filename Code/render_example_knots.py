@@ -44,10 +44,23 @@ def _load_pd(path):
         return ast.literal_eval(f.read().strip())
 
 
-def _render_link_to_pdf(link, pdf_path):
+def _force_black(editor):
+    """Recolor every arrow black. Used for single-component knots so they
+    don't collide visually with the red R component of the RBG link."""
+    for arrow in editor.Arrows:
+        arrow.color = "#000000"
+        try:
+            editor.canvas.itemconfig(arrow.lines[0], fill="#000000") if arrow.lines else None
+        except Exception:
+            pass
+
+
+def _render_link_to_pdf(link, pdf_path, force_black=False):
     editor = plink.LinkEditor()
     diagram = OrthogonalLinkDiagram(link)
     editor.unpickle(*diagram.plink_data())
+    if force_black:
+        _force_black(editor)
     try:
         editor.zoom_to_fit()
     except Exception:
@@ -73,7 +86,8 @@ def render_pd_file(pd_path):
     base = pd_path[: -len(".pd.txt")] if pd_path.endswith(".pd.txt") else os.path.splitext(pd_path)[0]
     pdf_path = base + ".pdf"
     png_path = base + ".png"
-    _render_link_to_pdf(link, pdf_path)
+    force_black = len(link.link_components) == 1
+    _render_link_to_pdf(link, pdf_path, force_black=force_black)
     _pdf_to_png(pdf_path, png_path)
     return png_path
 
