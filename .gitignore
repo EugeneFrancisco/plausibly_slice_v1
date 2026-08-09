@@ -2,7 +2,10 @@ snappy_census/
 .DS_Store
 __pycache__/
 *.pyc
+*.lock
+logs/
 AGENTS.md
+CLAUDE.md
 Data/plausibly_hyperbolic.csv.bz2
 Data/plausibly_slice.csv.bz2
 Data/~$n_friends_workbook.xlsx
