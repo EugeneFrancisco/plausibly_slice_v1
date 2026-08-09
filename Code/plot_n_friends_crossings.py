@@ -46,6 +46,78 @@ def plot_histogram(values: np.ndarray, n: int, bins: np.ndarray, out_path: Path)
     plt.close(fig)
 
 
+def plot_tiled(groups: dict[int, np.ndarray], bins: np.ndarray, out_path: Path) -> None:
+    ns_sorted = sorted(groups)
+    ncols = 4
+    nrows = int(np.ceil(len(ns_sorted) / ncols))
+
+    fig, axes = plt.subplots(
+        nrows, ncols,
+        figsize=(4.2 * ncols, 3.2 * nrows),
+        sharex=True, sharey=True,
+    )
+    axes_flat = np.atleast_1d(axes).flatten()
+
+    mark_specs = [
+        ("25th pct", "#DD8452", "--"),
+        ("median",   "#55A868", "--"),
+        ("75th pct", "#DD8452", ":"),
+        ("mean",     "#C44E52", "-"),
+    ]
+
+    for ax, n in zip(axes_flat, ns_sorted):
+        vals = groups[n]
+        q25, q50, q75 = np.percentile(vals, [25, 50, 75])
+        mean = vals.mean()
+        stats = [q25, q50, q75, mean]
+
+        ax.hist(vals, bins=bins, color="#4C72B0", edgecolor="white")
+        for (_, color, style), x in zip(mark_specs, stats):
+            ax.axvline(x, color=color, linestyle=style, linewidth=1.4)
+
+        ax.set_title(f"n = {n}  (N = {len(vals)})", fontsize=11)
+        stats_text = (
+            f"25th = {q25:.1f}\n"
+            f"med  = {q50:.1f}\n"
+            f"75th = {q75:.1f}\n"
+            f"mean = {mean:.1f}"
+        )
+        ax.text(
+            0.98, 0.97, stats_text,
+            transform=ax.transAxes,
+            ha="right", va="top",
+            fontsize=8, family="monospace",
+            bbox=dict(boxstyle="round,pad=0.3",
+                      facecolor="white", edgecolor="0.7", alpha=0.85),
+        )
+
+    # Hide any unused axes
+    for ax in axes_flat[len(ns_sorted):]:
+        ax.set_visible(False)
+
+    # Shared axis labels
+    fig.supxlabel("Number of crossings", y=0.06)
+    fig.supylabel("Count")
+
+    # One legend for the marker line styles, below the shared x-axis label
+    legend_handles = [
+        plt.Line2D([0], [0], color=color, linestyle=style, linewidth=1.6, label=label)
+        for label, color, style in mark_specs
+    ]
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        ncol=len(mark_specs),
+        frameon=False,
+        bbox_to_anchor=(0.5, -0.02),
+    )
+
+    fig.suptitle("Number of crossings of n-friends", fontsize=14)
+    fig.tight_layout(rect=(0, 0.08, 1, 0.96))
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
 def plot_overlay(groups: dict[int, np.ndarray], bins: np.ndarray, out_path: Path) -> None:
     fig, ax = plt.subplots(figsize=(10, 6))
     cmap = plt.get_cmap("viridis")
@@ -91,6 +163,10 @@ def main() -> None:
     overlay_path = OUT_DIR / "crossings_hist_overlay.png"
     plot_overlay(groups, bins, overlay_path)
     print(f"[wrote] {overlay_path.relative_to(REPO_ROOT)}")
+
+    tiled_path = OUT_DIR / "crossings_hist_tiled.png"
+    plot_tiled(groups, bins, tiled_path)
+    print(f"[wrote] {tiled_path.relative_to(REPO_ROOT)}")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@
 - Original K crossings: 15; K τ = 1; K s₀ = 2
 - n-friend K' crossings: 39
 - K' invariants: τ = 1.0, ν = 1.0, s = 2.0, s₂ = 2.0, s₃ = 2.0
-- Obstruction: s(mirrored)=2; s_2(mirrored)=2; s_3(mirrored)=2; 2*tau=2; 2*nu=2
+- Obstruction: s=2; s_2=2; s_3=2; 2*tau=2; 2*nu=2
 - RBG framings (r, b, g): [(-1, 1), (0, 1), (0, 1)]
 
 ## Files
