@@ -198,3 +198,7 @@ def main(ids=None):
         mark = "✓" if ok else "✗"
         print(f"  {mark} id_num {id_num}")
     return results
+
+
+if __name__ == "__main__":
+    main()
