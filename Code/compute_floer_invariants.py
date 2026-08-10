@@ -43,8 +43,7 @@ data_types = {
     }
 
 #Computes the floer homology at the specified index (if n<0 it computes the invariants of the mirror)
-
-def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: bool = False):
+def compute_floer_homology(id_num: int, min_crossings: int = 1, max_crossings: int = 100, recompute: bool = False):
     data = pd.read_csv(out_file_path,dtype=data_types)
     row = data.iloc[int(id_num) - 1]
 
@@ -59,18 +58,12 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: boo
 
     K=snappy.Link(pd_code)
 
+    if num_crossings < min_crossings:
+        return
+
     if num_crossings > max_crossings:
         #print("Too many crossings")
         return
-    
-    pd_code = ast.literal_eval(row["knot_PD_code"])
-    n = int(row["n"])
-    check = float(row["nu"])
-    
-    if not (math.isnan(check) or recompute):
-        return
-
-    K=snappy.Link(pd_code)
 
     #Mirrors the knot K to account for (-n)-surgery
     #Note that s(mK)=-s(K) and tau(mK)=-tau(K) but nu doesn't satisfy a similar equality
@@ -104,16 +97,15 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: boo
     #This flips the sign of the inequalities we check when n is negative
     #Note: this doesn't change the sign of what's written to the data file
     if (n < 0):
-        nu = -nu
-        tau = -tau
         n = -n
 
     obstructs = False
     #Checks Tau obstruction
     if (2*tau > n-math.sqrt(n)):
+        print("satisfies tau obstruction")
         obstructs = True
 
-    #Checks Nu obstruction (double check that this is correct)
+    #Checks Nu obstruction
     if (2*nu > n-math.sqrt(n)):
         obstructs = True
     
@@ -164,19 +156,19 @@ def check_obstruction():
             if (s_3 > n-math.sqrt(n)):
                 obstructs = True
             
-            
         row["obstructs"]=obstructs
+        data.iloc[i] = row
     data.to_csv(out_file_path,index=False)
 
-def compute_floer_invariants_specified(indices: list[int], max_crossings: int = 100):
+def compute_floer_invariants_specified(indices: list[int], min_crossings: int = 1, max_crossings: int = 100, recompute: bool = False):
     caffeine.on()
     for i in indices:
-        compute_floer_homology(i,max_crossings)
+        compute_floer_homology(i,min_crossings, max_crossings,recompute)
     caffeine.off()
 
-def compute_floer_invariants_table(start: int, end: int, max_crossings: int = 100, recompute: bool =False):
+def compute_floer_invariants_table(start: int, end: int, min_crossings: int = 1, max_crossings: int = 100, recompute: bool =False):
     caffeine.on()
     for i in range(start,end + 1):
-        compute_floer_homology(i,max_crossings,recompute)
+        compute_floer_homology(i,min_crossings, max_crossings,recompute)
     caffeine.off()
 
