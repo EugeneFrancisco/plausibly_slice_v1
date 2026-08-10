@@ -21,9 +21,13 @@ import math
 import time
 
 #Change these file paths to match your own computer
+<<<<<<< Updated upstream
 out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends.csv"
 
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/compute_s_invariant.py')
+=======
+out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends(Henri's version).csv"
+>>>>>>> Stashed changes
 
 data_types = {
     "id_num": int,
@@ -43,6 +47,10 @@ data_types = {
     "n_friend_PD_code": str
     }
 
+<<<<<<< Updated upstream
+=======
+#Computes the floer homology at the specified index (if n<0 it computes the invariants of the mirror)
+>>>>>>> Stashed changes
 def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: bool = False):
     data = pd.read_csv(out_file_path,dtype=data_types)
     row = data.iloc[int(id_num) - 1]
@@ -61,6 +69,23 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: boo
     if num_crossings > max_crossings:
         #print("Too many crossings")
         return
+<<<<<<< Updated upstream
+=======
+    
+    pd_code = ast.literal_eval(row["knot_PD_code"])
+    n = int(row["n"])
+    check = float(row["nu"])
+    
+    if not (math.isnan(check) or recompute):
+        return
+
+    K=snappy.Link(pd_code)
+
+    #Mirrors the knot K to account for (-n)-surgery
+    #Note that s(mK)=-s(K) and tau(mK)=-tau(K) but nu doesn't satisfy a similar equality
+    if (n < 0):
+        K = K.mirror()
+>>>>>>> Stashed changes
 
     #Computes Knot Floer Homology
     print(f"Finding Knot Floer Homology for knot {id_num}")
@@ -103,11 +128,64 @@ def compute_floer_homology(id_num: int, max_crossings: int = 100, recompute: boo
         obstructs = True
     
     if obstructs:
+<<<<<<< Updated upstream
         row["obstructs"]=obstructs
 
     data.iloc[int(id_num)-1]=row
     data.to_csv(out_file_path,index=False)
 
+=======
+        row["obstructs"]=obstructs
+
+    data.iloc[int(id_num)-1]=row
+    data.to_csv(out_file_path,index=False)
+
+def check_obstruction():
+    data = pd.read_csv(out_file_path,dtype=data_types)
+    for i in range(len(data)):
+        row = data.iloc[i]
+        nu = float(row["nu"])
+        tau = float(row["tau"])
+        s = float(row["s"])
+        s_2 = float(row["s_2"])
+        s_3 = float(row["s_3"])
+        n = float(row["n"])
+
+        if (n < 0):
+            n = -n
+            s = -s
+            s_2 = -s_2
+            s_3 = -s_3
+
+        obstructs = False
+        #Checks Tau obstruction
+        if not math.isnan(tau):
+            if (2*tau > n-math.sqrt(n)):
+                obstructs = True
+
+        #Checks Nu obstruction (double check that this is correct)
+        if not math.isnan(nu):
+            if (2*nu > n-math.sqrt(n)):
+                obstructs = True
+
+        #Checks s-invariant obstruction
+        if not math.isnan(s):
+            if (s > n-math.sqrt(n)):
+                obstructs = True
+                
+        if not math.isnan(s_2):
+            if (s_2 > n-math.sqrt(n)):
+                obstructs = True
+            
+        if not math.isnan(s_3):
+            if (s_3 > n-math.sqrt(n)):
+                obstructs = True
+            
+            
+        row["obstructs"]=obstructs
+    data.to_csv(out_file_path,index=False)
+
+>>>>>>> Stashed changes
 def compute_floer_invariants_specified(indices: list[int], max_crossings: int = 100):
     caffeine.on()
     for i in indices:

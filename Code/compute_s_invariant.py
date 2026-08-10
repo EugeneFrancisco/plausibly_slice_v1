@@ -24,9 +24,13 @@ import time
 #Change these file paths to match your own computer
 KNOTJOB_JAR = Path("/Users/henrigreamo/Desktop/KnotJob/KnotJob.jar")
 
+<<<<<<< Updated upstream
 out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends.csv"
 
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/n_friends_search.py')
+=======
+out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends(Henri's version).csv"
+>>>>>>> Stashed changes
 
 _RESULT_PATTERN = re.compile(
     r"S-Invariant mod (\d+)\s*:\s*(-?\d+)", re.IGNORECASE
