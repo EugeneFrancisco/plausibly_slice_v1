@@ -2,3 +2,4 @@ snappy_census/
 .DS_Store
 __pycache__/
 *.pyc
+Data/~$n_friends_workbook.xlsx
