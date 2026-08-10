@@ -10,8 +10,10 @@ from tqdm import tqdm
 
 #Change these file paths to match your own computer
 load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/find_n_friends.py')
+load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/compute_s_invariant.py')
+load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/compute_floer_invariants.py')
 
-out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends.csv"
+out_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/n_friends(Henri's version).csv"
 in_file_path = "/Users/henrigreamo/Desktop/plausibly_slice_v1/Data/plausibly_unknown.csv"
 
 data_types = {
