@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CSV_PATH = REPO_ROOT / "data" / "n_friends(master version).csv"
-OUT_DIR = REPO_ROOT / "preliminary_results"
+CSV_PATH = REPO_ROOT / "Data" / "n_friends(master version).csv"
+OUT_DIR = REPO_ROOT / "Data" / "results"
 
 N_VALUES = [-3, -2, -1, 1, 2, 3, 4, 5]
 BIN_WIDTH = 50

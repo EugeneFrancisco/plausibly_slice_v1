@@ -1,7 +1,7 @@
 # Obstructed n-friends in `data/n_friends(master version).csv`
 
 **Prepared:** 2026-08-09 · **Source data:** `data/n_friends(master version).csv` (3697 rows)
-**Companion machine-readable file:** [preliminary_results/obstructed_pairs.csv](obstructed_pairs.csv) (42 rows, includes both PD codes)
+**Companion machine-readable file:** [Data/results/obstructed_pairs.csv](obstructed_pairs.csv) (42 rows, includes both PD codes)
 
 ---
 

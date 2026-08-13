@@ -1,12 +1,12 @@
 """
 End-to-end pipeline for the obstructing n-friend pairs in
-preliminary_results/obstructed_pairs.csv.
+Data/results/obstructed_pairs.csv.
 
 For every row (or a --pairs subset) this script:
   1. Reads the census-knot PD code and the n-friend PD code.
   2. Calls forms_special_NRBG_link(n, blue_ex, green_ex) from code/n_rbg.py to
      find an n-special RBG link over the pair.
-  3. On success, writes into preliminary_results/example_knots/<pair>/:
+  3. On success, writes into Data/results/example_knots/<pair>/:
        - K_census.pd.txt          PD code of the census knot K
        - K_friend.pd.txt          PD code of the n-friend K'
        - RBG_link.pd.txt          PD code of the 3-component RBG link
@@ -66,9 +66,9 @@ except Exception as _e:  # pragma: no cover
     render_pd_file = None
     _RENDER_IMPORT_ERROR = _e
 
-MASTER_CSV = os.path.join(_ROOT, "data", "n_friends(master version).csv")
-OBSTRUCTED_CSV = os.path.join(_ROOT, "preliminary_results", "obstructed_pairs.csv")
-OUT_DIR = os.path.join(_ROOT, "preliminary_results", "example_knots")
+MASTER_CSV = os.path.join(_ROOT, "Data", "n_friends(master version).csv")
+OBSTRUCTED_CSV = os.path.join(_ROOT, "Data", "results", "obstructed_pairs.csv")
+OUT_DIR = os.path.join(_ROOT, "Data", "results", "example_knots")
 
 
 def _parse_pd(s):
@@ -97,8 +97,8 @@ def _write_readme(path, row, framings):
     lines = [
         f"# Example pair: id_num {id_num} (n = {n})",
         "",
-        f"- Source: `data/n_friends(master version).csv` row `id_num = {id_num}`",
-        f"- Companion: `preliminary_results/obstructed_pairs.csv`",
+        f"- Source: `Data/n_friends(master version).csv` row `id_num = {id_num}`",
+        f"- Companion: `Data/results/obstructed_pairs.csv`",
         f"- Census knot K: `{census}` "
         f"(index {row['n_friend_index']} in `plausibly_unknown.csv`, "
         f"{row['original_knot_crossings']} crossings, "

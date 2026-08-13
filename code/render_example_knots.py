@@ -1,5 +1,5 @@
 """
-Render every `*.pd.txt` under preliminary_results/example_knots/ as a PNG of
+Render every `*.pd.txt` under Data/results/example_knots/ as a PNG of
 the standard orthogonal link projection produced by plink.
 
 Pipeline per file:
@@ -27,7 +27,7 @@ from spherogram.links.orthogonal import OrthogonalLinkDiagram
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
-EXAMPLES_DIR = os.path.join(_ROOT, "preliminary_results", "example_knots")
+EXAMPLES_DIR = os.path.join(_ROOT, "Data", "results", "example_knots")
 DPI = 300
 
 
