@@ -4,7 +4,7 @@ preliminary_results/obstructed_pairs.csv.
 
 For every row (or a --pairs subset) this script:
   1. Reads the census-knot PD code and the n-friend PD code.
-  2. Calls forms_special_NRBG_link(n, blue_ex, green_ex) from Code/n_rbg.py to
+  2. Calls forms_special_NRBG_link(n, blue_ex, green_ex) from code/n_rbg.py to
      find an n-special RBG link over the pair.
   3. On success, writes into preliminary_results/example_knots/<pair>/:
        - K_census.pd.txt          PD code of the census knot K
@@ -24,10 +24,10 @@ Requires Sage (for n_rbg.py's `vector`/`matrix`), snappy, plink, and
 Run from the project root:
 
     conda activate sage
-    python Code/build_example_knots.py                    # all obstructing pairs
-    python Code/build_example_knots.py --pairs 20,166,168 # subset by id_num
-    python Code/build_example_knots.py --force            # redo even if present
-    python Code/build_example_knots.py --skip-render      # PD/README only
+    python code/build_example_knots.py                    # all obstructing pairs
+    python code/build_example_knots.py --pairs 20,166,168 # subset by id_num
+    python code/build_example_knots.py --force            # redo even if present
+    python code/build_example_knots.py --skip-render      # PD/README only
 """
 
 import argparse

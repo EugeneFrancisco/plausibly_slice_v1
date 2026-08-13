@@ -112,17 +112,17 @@ and `τ ≥ 2` simply does not occur anywhere in the current data.
 `s`, `s_2`, `s_3`, `nu`, `tau` describe the **found friend**.
 
 Read `n_friend_name` as *"this row's knot is an n-friend **of** …"*.
-Verified against `Code/n_friends_search.py:216-224` and the PD codes read by
-`Code/compute_s_invariant.py:224` / `Code/compute_floer_invariants.py:81`.
+Verified against `code/n_friends_search.py:216-224` and the PD codes read by
+`code/compute_s_invariant.py:224` / `code/compute_floer_invariants.py:81`.
 
 ### Trap 2: `tau`/`nu` and `s`/`s_2`/`s_3` are stored in *different* sign conventions
 
 This is the one that will silently produce fake results.
 
-* `Code/compute_floer_invariants.py:87-90` **mirrors the knot before computing HFK**
+* `code/compute_floer_invariants.py:87-90` **mirrors the knot before computing HFK**
   when `n < 0`. So for `n < 0` rows, the `tau` and `nu` columns already hold the
   invariants **of the mirror**. Test them directly: `2·tau > thr`. **Do not flip again.**
-* `Code/compute_s_invariant.py` does **not** mirror. The `s`, `s_2`, `s_3` columns hold
+* `code/compute_s_invariant.py` does **not** mirror. The `s`, `s_2`, `s_3` columns hold
   the un-mirrored friend's invariants, and the sign flip is applied at check time
   (`s → −s` when `n < 0`).
 
@@ -176,7 +176,7 @@ Notes on the table:
 
 Use them as **the validation suite** for the n-special RBG step. For each pair,
 attempt to realize the recorded surgery homeomorphism as an n-special RBG link
-(`Code/n_rbg.py` is the generalization of Dunfield–Gong's `rbg.py` for this). Success
+(`code/n_rbg.py` is the generalization of Dunfield–Gong's `rbg.py` for this). Success
 means Theorem 1.4 reproduces a known `slice = -1`; failure isolates whether the blocker is
 the n-special condition itself or the `R` is `r`-slice hypothesis. The best starting
 points are the smallest ones:
@@ -191,7 +191,7 @@ points are the smallest ones:
 
 ## 5. Caveats on the criterion itself
 
-* **The ν criterion is unverified.** `Code/compute_floer_invariants.py:124` carries the
+* **The ν criterion is unverified.** `code/compute_floer_invariants.py:124` carries the
   comment *"double check that this is correct"*. Qin's Theorem 1.4 is stated for `s`;
   the `2τ` and `2ν` forms are the pipeline's extrapolation. Note that ν is **not**
   anti-symmetric under mirroring (`ν(mK) ≠ −ν(K)` in general) — which is precisely why
@@ -252,15 +252,15 @@ tractable for KnotJob. Start there.
 
 2024 of these are at `|n| ≤ 3` (where the bar is lowest), but they are overwhelmingly
 large: only 10 are ≤ 60 crossings, and 742 exceed 200 crossings. The bottleneck is
-diagram simplification, not the invariant computation — `Code/simplify_master.py` and
-`super_simplify_table` in `Code/n_friends_search.py` are the relevant tools. Worth running
+diagram simplification, not the invariant computation — `code/simplify_master.py` and
+`super_simplify_table` in `code/n_friends_search.py` are the relevant tools. Worth running
 a bulk simplification pass before any more invariant computation is scheduled.
 
 ---
 
 ## 7. Bugs found while auditing (worth fixing, none affect §4)
 
-1. **`check_obstruction()` in `Code/compute_floer_invariants.py:134-177` is a no-op.**
+1. **`check_obstruction()` in `code/compute_floer_invariants.py:134-177` is a no-op.**
    It does `row = data.iloc[i]` (a *copy*), mutates `row["obstructs"]`, then writes
    `data` back out — so the `obstructs` column is never actually updated by this
    function. Verified: `df.iloc[0]['a'] = 99` does not propagate to `df`. Fix with
@@ -282,7 +282,7 @@ a bulk simplification pass before any more invariant computation is scheduled.
 
 4. **Two rows have `verification = False`**: `id_num` 1442 (`n = 1`, over
    `18nh_09603071`) and 3455 (`n = −2`, over `18nh_04477958`). Neither has invariants
-   computed. `rerun_all_unverified()` in `Code/n_friends_search.py` exists to clear these.
+   computed. `rerun_all_unverified()` in `code/n_friends_search.py` exists to clear these.
 
 ---
 

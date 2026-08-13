@@ -4,8 +4,8 @@ use sage directly from the terminal and load the files based on their pathways
 on your computer.
 '''
 
-load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/n_rbg.py')
-load('/Users/henrigreamo/Desktop/plausibly_slice_v1/Code/find_n_friends.py')
+load('/Users/henrigreamo/Desktop/plausibly_slice_v1/code/n_rbg.py')
+load('/Users/henrigreamo/Desktop/plausibly_slice_v1/code/find_n_friends.py')
 
 def check_common_surgery(E1,E2,n):
     S1=E1.copy()
@@ -136,7 +136,6 @@ def search_test():
         if n != 0 and not _n_surgery_recovers(F, n, M):
             continue                          # rational-surgery coincidence
         print("Passed isometry check")
-
 
 
 

@@ -11,7 +11,7 @@ is needed) and `pdftoppm` on PATH.
 
 Run from the project root (in any environment where snappy + plink import):
 
-    python Code/render_example_knots.py
+    python code/render_example_knots.py
 """
 
 import ast
